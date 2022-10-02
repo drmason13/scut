@@ -1,0 +1,14 @@
+[package]
+name = "scut"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.0.8", features = ["derive"] }
+dirs = "4.0.0"
+error-stack = { git = "https://github.com/hashintel/hash", features = ["pretty-print"] }
+serde = { version = "1.0.145", features = ["derive"] }
+thiserror = "1.0.36"
+toml = "0.5.9"
