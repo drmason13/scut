@@ -6,8 +6,11 @@ mod command;
 mod config;
 mod error;
 mod fs;
+#[cfg(test)]
+mod test;
 
 use command::Command;
+use config::Config;
 
 fn main() -> Result<(), Report<RuntimeError>> {
     let cmd = Command::parse();
@@ -16,17 +19,15 @@ fn main() -> Result<(), Report<RuntimeError>> {
 }
 
 pub(crate) fn run(command: Command) -> Result<(), Report<RuntimeError>> {
+    let config = Config::read_config_file().change_context(RuntimeError)?;
+
     match command {
-        Command::Greet(cmd) => cmd
-            .run()
-            .change_context(RuntimeError)
-            .attach_printable("Something went wrong greeting"),
         Command::Download(cmd) => cmd
-            .run()
+            .run(&config)
             .change_context(RuntimeError)
             .attach_printable("Something went wrong downloading"),
         Command::Upload(cmd) => cmd
-            .run()
+            .run(&config)
             .change_context(RuntimeError)
             .attach_printable("Something went wrong uploading"),
     }
