@@ -1,12 +1,9 @@
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use error_stack::{IntoReport, Report, ResultExt};
 use serde::{Deserialize, Serialize};
 
-use crate::{error::ConfigError, fs::write_string_to_file};
+use crate::{error::ConfigError, fs::write_string_to_file, side::Side};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Config {
@@ -14,21 +11,6 @@ pub(crate) struct Config {
     pub(crate) saves: PathBuf,
     pub(crate) seven_zip_path: PathBuf,
     pub(crate) side: Side,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum Side {
-    Axis,
-    Allies,
-}
-
-impl Display for Side {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Axis => write!(f, "Axis"),
-            Self::Allies => write!(f, "Allies"),
-        }
-    }
 }
 
 impl Config {

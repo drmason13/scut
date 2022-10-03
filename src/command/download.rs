@@ -1,8 +1,9 @@
 use clap::Args;
+use either::Either;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{config::Config, fs::extract};
+use crate::{config::Config, fs::extract, side::Side};
 
 use super::shared::find_latest_archive_file;
 
@@ -14,6 +15,26 @@ impl Download {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         let archive =
             find_latest_archive_file(config.dropbox()).change_context(DownloadError::Read)?;
+
+        let side: Either<Side, Result<Side, Report<DownloadError>>> = match (
+            &config.side,
+            Side::detect_side_in_string(&archive.to_string_lossy()),
+        ) {
+            (Side::Allies, Ok(side @ Side::Axis)) => Either::Left(side),
+            (Side::Axis, Ok(side @ Side::Allies)) => Either::Left(side),
+            (_, Err(e)) => Either::Right(Err(Report::new(e)
+                .change_context(DownloadError::IndeterminateAction)
+                .attach_printable("Could not determine which side the latest saved belongs to"))),
+            (_, Ok(side)) => Either::Right(Ok(side)),
+        };
+
+        if let Either::Left(wrong_side) = side {
+            println!("The latest save is an {} save, scut will stop since you're configured to be playing for the {}", wrong_side, wrong_side.other_side());
+            return Ok(());
+        }
+
+        let side = side.unwrap_right()?;
+        println!("Found an {} save", side);
 
         let filename = archive
             .file_name()
@@ -54,4 +75,6 @@ pub(crate) enum DownloadError {
     Read,
     #[error("Could not extract save from zip file")]
     Extract,
+    #[error("Could not work out what to do with save file")]
+    IndeterminateAction,
 }

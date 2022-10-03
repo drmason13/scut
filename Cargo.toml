@@ -9,6 +9,7 @@ edition = "2021"
 clap = { version = "4.0.8", features = ["derive"] }
 dirs = "4.0.0"
 dropbox-dir = "1.0.0"
+either = "1.8.0"
 error-stack = { git = "https://github.com/hashintel/hash", features = ["pretty-print"] }
 serde = { version = "1.0.145", features = ["derive"] }
 thiserror = "1.0.36"

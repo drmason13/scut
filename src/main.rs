@@ -6,6 +6,7 @@ mod command;
 mod config;
 mod error;
 mod fs;
+mod side;
 #[cfg(test)]
 mod test;
 

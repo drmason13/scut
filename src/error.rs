@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ConfigError {
+pub(crate) enum ConfigError {
     #[error("Unable to locate config directory")]
     UnknownConfigDir,
     #[error(transparent)]
@@ -14,16 +14,16 @@ pub enum ConfigError {
 
 #[derive(Debug, Error)]
 #[error("SCUT (Strategic Command Utility Tool) has encountered an error")]
-pub struct RuntimeError;
+pub(crate) struct RuntimeError;
 
 #[derive(Debug, Error)]
 #[error("Unable to create a default config file")]
-pub struct WriteDefaultConfigError;
+pub(crate) struct WriteDefaultConfigError;
 
 #[derive(Debug, Error)]
 #[error("Unable to compress a file")]
-pub struct CompressionError;
+pub(crate) struct CompressionError;
 
 #[derive(Debug, Error)]
 #[error("No save file found")]
-pub struct NoSaveFileFound;
+pub(crate) struct NoSaveFileFound;
