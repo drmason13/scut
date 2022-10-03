@@ -7,7 +7,6 @@ use crate::{config::Config, fs::extract};
 use super::shared::find_latest_archive_file;
 
 #[derive(Debug, Args)]
-#[command(args_conflicts_with_subcommands = true)]
 pub(crate) struct Download;
 
 impl Download {
