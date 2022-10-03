@@ -3,7 +3,7 @@ use either::Either;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{config::Config, fs::extract, side::Side};
+use crate::{config::Config, side::Side, utils::extract};
 
 use super::shared::find_latest_archive_file;
 
@@ -11,25 +11,30 @@ use super::shared::find_latest_archive_file;
 pub(crate) struct Download;
 
 impl Download {
-    // TODO: Guess which side a save file is for and warn and exit if the latest save is from your side.
+    // TODO: Guess which side a save file is for and warn and exit if the latest save is from your side. [x]
+    // TODO: Only warn if the save isn't also yours (signed by you)
+
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         let archive =
-            find_latest_archive_file(config.dropbox()).change_context(DownloadError::Read)?;
+            find_latest_archive_file(&config.dropbox).change_context(DownloadError::Read)?;
 
         let side: Either<Side, Result<Side, Report<DownloadError>>> = match (
             &config.side,
             Side::detect_side_in_string(&archive.to_string_lossy()),
         ) {
-            (Side::Allies, Ok(side @ Side::Axis)) => Either::Left(side),
-            (Side::Axis, Ok(side @ Side::Allies)) => Either::Left(side),
+            (Side::Allies, Ok(side @ Side::Allies)) => Either::Left(side),
+            (Side::Axis, Ok(side @ Side::Axis)) => Either::Left(side),
             (_, Err(e)) => Either::Right(Err(Report::new(e)
                 .change_context(DownloadError::IndeterminateAction)
                 .attach_printable("Could not determine which side the latest saved belongs to"))),
             (_, Ok(side)) => Either::Right(Ok(side)),
         };
 
-        if let Either::Left(wrong_side) = side {
-            println!("The latest save is an {} save, scut will stop since you're configured to be playing for the {}", wrong_side, wrong_side.other_side());
+        if let Either::Left(side) = side {
+            println!(
+                "You are configured to be playing the Allies.\nLatest save is not from the {} so there's nothing to do.",
+                side.other_side()
+            );
             return Ok(());
         }
 
@@ -48,17 +53,17 @@ impl Download {
         println!(
             "Extracting {} to {}",
             filename.to_string_lossy(),
-            config.saves().display()
+            config.saves.display()
         );
 
-        extract(config.seven_zip_path(), &archive, config.saves())
+        extract(&config.seven_zip_path, &archive, &config.saves)
             .into_report()
             .change_context(DownloadError::Extract)
             .attach_printable_lazy(|| {
                 format!(
                     "while extracting {} to {}",
                     &archive.display(),
-                    config.dropbox().display()
+                    config.dropbox.display()
                 )
             })?;
 

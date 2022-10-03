@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -33,6 +33,14 @@ impl Side {
             Self::Allies => Self::Axis,
             Self::Axis => Self::Allies,
         }
+    }
+}
+
+impl FromStr for Side {
+    type Err = UnknownSideError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::detect_side_in_string(s)
     }
 }
 

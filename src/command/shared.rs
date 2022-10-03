@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use error_stack::{IntoReport, Report, ResultExt};
 
-use crate::{error::NoSaveFileFound, fs::list_files_in_modified_order};
+use crate::{error::NoSaveFileFound, utils::list_files_in_modified_order};
 
 /// utility functions shared between commands
 

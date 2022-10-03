@@ -74,6 +74,13 @@ pub(crate) fn write_string_to_file(content: String, path: &Path) -> Result<(), R
         .attach_printable_lazy(|| format!("Unable to write to file: {}", path.display()))
 }
 
+pub(crate) fn read_input_from_user(prompt: &str) -> io::Result<String> {
+    println!("{prompt}");
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
+}
+
 #[derive(Debug, Error)]
 #[error("Error creating file")]
 pub struct FileError;

@@ -3,7 +3,11 @@ use std::path::{Path, PathBuf};
 use error_stack::{IntoReport, Report, ResultExt};
 use serde::{Deserialize, Serialize};
 
-use crate::{error::ConfigError, fs::write_string_to_file, side::Side};
+use crate::{
+    error::ConfigError,
+    side::Side,
+    utils::{read_input_from_user, write_string_to_file},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Config {
@@ -11,19 +15,10 @@ pub(crate) struct Config {
     pub(crate) saves: PathBuf,
     pub(crate) seven_zip_path: PathBuf,
     pub(crate) side: Side,
+    pub(crate) player: String,
 }
 
 impl Config {
-    pub(crate) fn dropbox(&self) -> &Path {
-        &self.dropbox
-    }
-    pub(crate) fn saves(&self) -> &Path {
-        &self.saves
-    }
-    pub(crate) fn seven_zip_path(&self) -> &Path {
-        &self.seven_zip_path
-    }
-
     pub(crate) fn write_default_config_file(
         config_path: &Path,
     ) -> Result<Config, Report<ConfigError>> {
@@ -39,11 +34,22 @@ impl Config {
         );
         let seven_zip_path = PathBuf::from(r#"C:\Program Files\7-Zip\"#);
 
+        let side = ask_player_for_a_side()
+            .into_report()
+            .change_context(ConfigError::CreateDefaultConfig)
+            .attach_printable("Could not read from stdin to ask you for a side, try again later")?;
+
+        let player = ask_player_for_a_name()
+            .into_report()
+            .change_context(ConfigError::CreateDefaultConfig)
+            .attach_printable("Could not read from stdin to ask you for a name, try again later")?;
+
         let default_config = Config {
             dropbox,
             saves,
             seven_zip_path,
-            side: Side::Allies,
+            side,
+            player,
         };
 
         let config_toml = toml::to_string_pretty(&default_config)
@@ -52,6 +58,8 @@ impl Config {
 
         write_string_to_file(config_toml, config_path)
             .change_context(ConfigError::CreateDefaultConfig)?;
+
+        println!("New config written to {}", config_path.display());
 
         Ok(default_config)
     }
@@ -77,11 +85,46 @@ impl Config {
                     )?;
                 Ok(default_config)
             }
-            Err(e) => Err(Report::new(ConfigError::Io(e))
-                .attach_printable("Unexpected error while reading config file")),
-            Ok(ref config_content) => toml::from_str(config_content)
-                .map_err(|_| ConfigError::Parse)
-                .into_report(),
+            Err(e) => Err(e)
+                .into_report()
+                .change_context(ConfigError::Read)
+                .attach_printable("Unexpected error while reading config file"),
+            Ok(ref config_content) => {
+                let result = toml::from_str(config_content);
+                match result {
+                    Ok(config) => Ok(config),
+                    Err(e) => Err(e).into_report().change_context(ConfigError::Parse),
+                }
+            }
         }
+    }
+}
+
+fn ask_player_for_a_side() -> std::io::Result<Side> {
+    loop {
+        let side = read_input_from_user("What side will you be playing as?")?;
+
+        let side: Result<Side, _> = side.parse();
+
+        match side {
+            Ok(side) => break Ok(side),
+            Err(_) => {
+                println!("The valid sides are 'Axis' and 'Allies', please enter one of those");
+                continue;
+            }
+        };
+    }
+}
+
+fn ask_player_for_a_name() -> std::io::Result<String> {
+    loop {
+        let player = read_input_from_user("How do you want to sign your saves?")?;
+        let player = player.trim();
+
+        if player.is_empty() {
+            println!("A player sign is needed so people know which saves are yours");
+            continue;
+        }
+        break Ok(player.to_string());
     }
 }

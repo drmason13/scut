@@ -2,10 +2,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub(crate) enum ConfigError {
+    #[error("Could not read configuration")]
+    Read,
     #[error("Unable to locate config directory")]
     UnknownConfigDir,
-    #[error(transparent)]
-    Io(std::io::Error),
     #[error("Could not parse configuration file")]
     Parse,
     #[error("Could not create default configuration file")]

@@ -2,7 +2,7 @@ use clap::Args;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{config::Config, fs};
+use crate::{config::Config, utils};
 
 use super::shared::find_latest_save_file;
 
@@ -18,8 +18,7 @@ impl Upload {
         // zip latest save in the "saves" folder to the "dropbox" folder
 
         // find latest save
-        let latest_save =
-            find_latest_save_file(config.saves()).change_context(UploadError::Read)?;
+        let latest_save = find_latest_save_file(&config.saves).change_context(UploadError::Read)?;
 
         let filename = latest_save
             .file_name()
@@ -34,15 +33,15 @@ impl Upload {
         println!(
             "Compressing {} to {}",
             filename.to_string_lossy(),
-            config.dropbox().display()
+            &config.dropbox.display()
         );
 
-        fs::compress(
+        utils::compress(
             &config.seven_zip_path,
             &latest_save,
             format!(
                 "{dir}{side} {turn}",
-                dir = config.dropbox().display(),
+                dir = &config.dropbox.display(),
                 side = &config.side,
                 turn = self.turn
             )
@@ -53,8 +52,8 @@ impl Upload {
         .attach_printable_lazy(|| {
             format!(
                 "while compressing {} to {}",
-                &latest_save.display(),
-                config.dropbox().display()
+                latest_save.display(),
+                config.dropbox.display()
             )
         })?;
 

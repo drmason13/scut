@@ -5,10 +5,10 @@ use error_stack::{Report, ResultExt};
 mod command;
 mod config;
 mod error;
-mod fs;
 mod side;
 #[cfg(test)]
 mod test;
+mod utils;
 
 use command::Command;
 use config::Config;
