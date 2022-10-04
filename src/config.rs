@@ -1,4 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use error_stack::{IntoReport, Report, ResultExt};
 use serde::{Deserialize, Serialize};
@@ -64,12 +68,52 @@ impl Config {
         Ok(default_config)
     }
 
-    pub(crate) fn read_config_file() -> Result<Config, Report<ConfigError>> {
-        // read config
-        let config_path = dirs::config_dir()
+    pub(crate) fn get(&self, key: Key) -> Setting {
+        match key {
+            Key::Dropbox => Setting::Dropbox(self.dropbox.clone()),
+            Key::Saves => Setting::Saves(self.saves.clone()),
+            Key::SevenZipPath => Setting::SevenZipPath(self.seven_zip_path.clone()),
+            Key::Side => Setting::Side(self.side),
+            Key::Player => Setting::Player(self.player.clone()),
+        }
+    }
+
+    pub(crate) fn set(&mut self, key: Key, value: Setting) -> Result<(), Report<ConfigError>> {
+        match (key, value) {
+            (Key::Dropbox, Setting::Dropbox(value)) => {
+                self.dropbox = value;
+            }
+            (Key::Saves, Setting::Saves(value)) => {
+                self.saves = value;
+            }
+            (Key::SevenZipPath, Setting::SevenZipPath(value)) => {
+                self.seven_zip_path = value;
+            }
+            (Key::Side, Setting::Side(value)) => {
+                self.side = value;
+            }
+            (Key::Player, Setting::Player(value)) => {
+                self.player = value;
+            }
+            (Key::Dropbox, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+            (Key::Saves, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+            (Key::SevenZipPath, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+            (Key::Side, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+            (Key::Player, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+        }
+        Ok(())
+    }
+
+    pub(crate) fn file_path() -> Result<PathBuf, Report<ConfigError>> {
+        Ok(dirs::config_dir()
             .ok_or_else(|| Report::new(ConfigError::UnknownConfigDir))?
             .join("scut")
-            .join("config.toml");
+            .join("config.toml"))
+    }
+
+    pub(crate) fn read_config_file() -> Result<Config, Report<ConfigError>> {
+        // read config
+        let config_path = Config::file_path()?;
 
         let file_result = std::fs::read_to_string(&config_path);
 
@@ -96,6 +140,83 @@ impl Config {
                     Err(e) => Err(e).into_report().change_context(ConfigError::Parse),
                 }
             }
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub(crate) enum Key {
+    Dropbox,
+    Saves,
+    SevenZipPath,
+    Side,
+    Player,
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Key::Dropbox => write!(f, "dropbox"),
+            Key::Saves => write!(f, "saves"),
+            Key::SevenZipPath => write!(f, "seven_zip_path"),
+            Key::Side => write!(f, "side"),
+            Key::Player => write!(f, "player"),
+        }
+    }
+}
+
+impl FromStr for Key {
+    type Err = ConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "dropbox" => Ok(Self::Dropbox),
+            "saves" | "save" => Ok(Self::Saves),
+            "seven_zip_path" | "sevenzippath" | "seven-zip-path" | "seven zip path"
+            | "sevenzip path" | "sevenzip-path" | "7zpath" | "7z path" | "7z-path" | "7z_path" => {
+                Ok(Self::SevenZipPath)
+            }
+            "side" | "team" => Ok(Self::Side),
+            "player" | "name" => Ok(Self::Player),
+            _ => Err(ConfigError::InvalidKey),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) enum Setting {
+    Dropbox(PathBuf),
+    Saves(PathBuf),
+    SevenZipPath(PathBuf),
+    Side(Side),
+    Player(String),
+}
+
+impl Display for Setting {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Setting::Dropbox(value) => value.display().fmt(f),
+            Setting::Saves(value) => value.display().fmt(f),
+            Setting::SevenZipPath(value) => value.display().fmt(f),
+            Setting::Side(value) => value.fmt(f),
+            Setting::Player(value) => value.fmt(f),
+        }
+    }
+}
+
+impl Setting {
+    pub fn new(key: Key, value: String) -> Result<Self, Report<ConfigError>> {
+        match key {
+            Key::Dropbox => Ok(Setting::Dropbox(value.into())),
+            Key::Saves => Ok(Setting::Saves(value.into())),
+            Key::SevenZipPath => Ok(Setting::SevenZipPath(value.into())),
+            Key::Side => Ok(Setting::Side(
+                value
+                    .parse()
+                    .into_report()
+                    .change_context(ConfigError::InvalidSetting)?,
+            )),
+            Key::Player => Ok(Setting::Player(value)),
         }
     }
 }

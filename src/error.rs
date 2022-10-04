@@ -10,6 +10,10 @@ pub(crate) enum ConfigError {
     Parse,
     #[error("Could not create default configuration file")]
     CreateDefaultConfig,
+    #[error("Setting does not exist")]
+    InvalidKey,
+    #[error("Invalid value for setting")]
+    InvalidSetting,
 }
 
 #[derive(Debug, Error)]

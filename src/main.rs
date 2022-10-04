@@ -23,6 +23,10 @@ pub(crate) fn run(command: Command) -> Result<(), Report<RuntimeError>> {
     let config = Config::read_config_file().change_context(RuntimeError)?;
 
     match command {
+        Command::Config(cmd) => cmd
+            .run()
+            .change_context(RuntimeError)
+            .attach_printable("Something went wrong using the config"),
         Command::Download(cmd) => cmd
             .run(&config)
             .change_context(RuntimeError)
