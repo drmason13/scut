@@ -17,6 +17,10 @@ impl Upload {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<UploadError>> {
         // zip latest save in the "saves" folder to the "dropbox" folder
 
+        // TODO: Parse the save name to work out which team it belongs to and what turn it is for
+        // TODO: Only return saves that belong to your team
+        // TODO: Associate "autosave" with your team
+        // TODO: Find your save as well as the autosave and upload both, naming the autosave to the opposing team and the next turn number (which is either the same number or +1 depending on your Side)
         // find latest save
         let latest_save = find_latest_save_file(&config.saves).change_context(UploadError::Read)?;
 

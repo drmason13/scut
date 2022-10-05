@@ -12,7 +12,8 @@ pub(crate) struct Download;
 
 impl Download {
     // TODO: Guess which side a save file is for and warn and exit if the latest save is from your side. [x]
-    // TODO: Only warn if the save isn't also yours (signed by you)
+    // TODO: Don't warn if the save is your side but a different player
+    // TODO: download the latest save from your Side or the latest save from the other side according to the turn numbers of both
 
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         let archive =

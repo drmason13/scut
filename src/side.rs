@@ -3,19 +3,10 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum Side {
     Axis,
     Allies,
-}
-
-impl Display for Side {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Axis => write!(f, "Axis"),
-            Self::Allies => write!(f, "Allies"),
-        }
-    }
 }
 
 impl Side {
@@ -32,6 +23,15 @@ impl Side {
         match self {
             Self::Allies => Self::Axis,
             Self::Axis => Self::Allies,
+        }
+    }
+}
+
+impl Display for Side {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Axis => write!(f, "Axis"),
+            Self::Allies => write!(f, "Allies"),
         }
     }
 }
