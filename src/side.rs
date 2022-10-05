@@ -18,13 +18,6 @@ impl Side {
             _ => Err(UnknownSideError(string.to_string())),
         }
     }
-
-    pub(crate) fn other_side(&self) -> Self {
-        match self {
-            Self::Allies => Self::Axis,
-            Self::Axis => Self::Allies,
-        }
-    }
 }
 
 impl Display for Side {

@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -11,11 +12,30 @@ use crate::side::Side;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Save {
     Autosave,
-    Turn {
-        player: Option<String>,
-        side: Side,
-        turn: u32,
-    },
+    Turn(TurnSave),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TurnSave {
+    pub(crate) player: Option<String>,
+    pub(crate) side: Side,
+    pub(crate) turn: u32,
+}
+
+impl Display for Save {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Save::Autosave => write!(f, "autosave"),
+            Save::Turn(save) => save.fmt(f),
+        }
+    }
+}
+
+impl Display for TurnSave {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let TurnSave { side, turn, player } = self;
+        write!(f, "{side} {} {turn}", player.as_deref().unwrap_or(""))
+    }
 }
 
 impl TryFrom<PathBuf> for Save {
@@ -92,7 +112,7 @@ impl FromStr for Save {
             }),
         };
 
-        Ok(Save::Turn { player, side, turn })
+        Ok(Save::Turn(TurnSave { player, side, turn }))
     }
 }
 
@@ -108,38 +128,38 @@ mod test {
     fn test_parse_save() {
         let save = "Allies 123";
         let actual: Save = save.parse().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: None,
             turn: 123,
             side: Side::Allies,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = "Allies DM 123";
         let actual: Save = save.parse().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Allies,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = "Axis 123 DM";
         let actual: Save = save.parse().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Axis,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = "Axis Start 123";
         let actual: Save = save.parse().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: None,
             turn: 123,
             side: Side::Axis,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = "autosave";
@@ -187,38 +207,38 @@ mod test {
     fn test_parse_save_path() {
         let save = PathBuf::from("foo/bar/Allies 123.7z");
         let actual: Save = save.try_into().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: None,
             turn: 123,
             side: Side::Allies,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/Allies DM 123.sav");
         let actual: Save = save.try_into().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Allies,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/Axis 123 DM.7z");
         let actual: Save = save.try_into().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Axis,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/Axis Start 123.7z");
         let actual: Save = save.try_into().expect("should parse");
-        let expected = Save::Turn {
+        let expected = Save::Turn(TurnSave {
             player: None,
             turn: 123,
             side: Side::Axis,
-        };
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/autosave.sav");

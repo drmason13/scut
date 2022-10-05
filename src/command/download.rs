@@ -1,9 +1,8 @@
 use clap::Args;
-use either::Either;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{config::Config, side::Side, utils::extract};
+use crate::{config::Config, save::Save, utils::extract};
 
 use super::shared::find_latest_archive_file;
 
@@ -11,36 +10,33 @@ use super::shared::find_latest_archive_file;
 pub(crate) struct Download;
 
 impl Download {
-    // TODO: Guess which side a save file is for and warn and exit if the latest save is from your side. [x]
-    // TODO: Don't warn if the save is your side but a different player
     // TODO: download the latest save from your Side or the latest save from the other side according to the turn numbers of both
 
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         let archive =
             find_latest_archive_file(&config.dropbox).change_context(DownloadError::Read)?;
 
-        let side: Either<Side, Result<Side, Report<DownloadError>>> = match (
-            &config.side,
-            Side::detect_side_in_string(&archive.to_string_lossy()),
-        ) {
-            (Side::Allies, Ok(side @ Side::Allies)) => Either::Left(side),
-            (Side::Axis, Ok(side @ Side::Axis)) => Either::Left(side),
-            (_, Err(e)) => Either::Right(Err(Report::new(e)
-                .change_context(DownloadError::IndeterminateAction)
-                .attach_printable("Could not determine which side the latest saved belongs to"))),
-            (_, Ok(side)) => Either::Right(Ok(side)),
-        };
+        let save: Save = archive
+            .as_path()
+            .try_into()
+            .into_report()
+            .attach_printable("The latest save file was named in an unusual way. scut does not know how to proceed. Stopping.")
+            .attach_printable(format!("save name: {}", archive.display()))
+            .change_context(DownloadError::IndeterminateAction)?;
 
-        if let Either::Left(side) = side {
-            println!(
-                "You are configured to be playing the Allies.\nLatest save is not from the {} so there's nothing to do.",
-                side.other_side()
-            );
-            return Ok(());
+        if let Save::Autosave = save {
+            return Err(Report::new(DownloadError::AutosaveArchived)
+                .attach_printable("Found a zipped up autosave, the save should be renamed so we know what turn it is"));
         }
 
-        let side = side.unwrap_right()?;
-        println!("Found an {} save", side);
+        if let Save::Turn(save) = save {
+            if save.side == config.side
+                && matches!(save.player, Some(ref player) if player == &config.player)
+            {
+                println!("Latest save ({}) is belongs to you, nothing to do.", save);
+                return Ok(());
+            }
+        }
 
         let filename = archive
             .file_name()
@@ -83,4 +79,6 @@ pub(crate) enum DownloadError {
     Extract,
     #[error("Could not work out what to do with save file")]
     IndeterminateAction,
+    #[error("Unexpected 'autosave' zip file")]
+    AutosaveArchived,
 }
