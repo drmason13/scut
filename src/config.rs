@@ -6,9 +6,9 @@ use std::{
 
 use error_stack::{IntoReport, Report, ResultExt};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::{
-    error::ConfigError,
     side::Side,
     utils::{read_input_from_user, write_string_to_file},
 };
@@ -23,6 +23,16 @@ pub(crate) struct Config {
 }
 
 impl Config {
+    pub(crate) fn save(&self, config_path: &Path) -> Result<(), Report<ConfigError>> {
+        let config_toml = toml::to_string_pretty(&self)
+            .into_report()
+            .change_context(ConfigError::Save)?;
+
+        write_string_to_file(config_toml, config_path).change_context(ConfigError::Save)?;
+
+        Ok(())
+    }
+
     pub(crate) fn write_default_config_file(
         config_path: &Path,
     ) -> Result<Config, Report<ConfigError>> {
@@ -56,11 +66,8 @@ impl Config {
             player,
         };
 
-        let config_toml = toml::to_string_pretty(&default_config)
-            .into_report()
-            .change_context(ConfigError::CreateDefaultConfig)?;
-
-        write_string_to_file(config_toml, config_path)
+        default_config
+            .save(config_path)
             .change_context(ConfigError::CreateDefaultConfig)?;
 
         println!("New config written to {}", config_path.display());
@@ -141,6 +148,16 @@ impl Config {
                 }
             }
         }
+    }
+}
+
+impl Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            toml::to_string_pretty(self).unwrap_or_else(|_| format!("{:?}", self))
+        )
     }
 }
 
@@ -248,4 +265,22 @@ fn ask_player_for_a_name() -> std::io::Result<String> {
         }
         break Ok(player.to_string());
     }
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum ConfigError {
+    #[error("Could not read configuration")]
+    Read,
+    #[error("Could not save configuration")]
+    Save,
+    #[error("Unable to locate config directory")]
+    UnknownConfigDir,
+    #[error("Could not parse configuration file")]
+    Parse,
+    #[error("Could not create default configuration file")]
+    CreateDefaultConfig,
+    #[error("Setting does not exist")]
+    InvalidKey,
+    #[error("Invalid value for setting")]
+    InvalidSetting,
 }

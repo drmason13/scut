@@ -33,17 +33,21 @@ impl ConfigCmd {
         match self {
             Self::Show => {
                 println!("Config is located at {}", config_path.display());
-                println!("{:#?}", config);
+                println!("{}", config);
             }
             Self::Get { key } => {
                 let value = config.get(key);
                 println!("{}", value);
             }
             Self::Set { key, value } => {
+                let value = normalise(value);
                 let mut config = config;
                 let value = Setting::new(key, value).change_context(ConfigCmdError::Set)?;
                 config.set(key, value).change_context(ConfigCmdError::Set)?;
-                println!("{key} was updated successfully");
+                config
+                    .save(&config_path)
+                    .change_context(ConfigCmdError::Set)?;
+                println!("config.{key} was updated successfully");
             }
         }
 
@@ -58,4 +62,9 @@ pub(crate) enum ConfigCmdError {
     Read,
     #[error("Failed to update config setting")]
     Set,
+}
+
+fn normalise(value: String) -> String {
+    let trim_chars: &[_] = &['\'', '"', ' ', '\\'];
+    value.trim_matches(trim_chars).to_string()
 }
