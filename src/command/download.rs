@@ -12,17 +12,6 @@ use super::shared::wait_for_user_before_close;
 pub(crate) struct Download;
 
 impl Download {
-    // you only ever want to download saves for your team (they're "from" the other team, but they are labelled with *your* team)
-    // you might want to download your teammate's save, but only if its for the same turn you're about to play
-
-    // i.e. if you want to play Axis turn 8, and there's "Axis start 8" and "Axis JB 8" in the saves, you'll want both
-    //      if there's "Axis start 8" and "Axis JB 7" or "Axis ME 7" but no "Axis JB 8" then you just want to download "Axis start 8"
-
-    // it would actually be convenient if we could ask for the saves we want and download all of them that are there.
-    // problem being we can't know exactly what they're called (cos other saves are being uploaded by pesky humans)
-    // but we can work out if they are the right save by parsing them... we could be... lazy? and parse them all
-    // (they're just local filenames after all - it might actually be faster than sorting them and taking the most recent X)
-
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         let mut available_saves = iter_turn_saves_in_dir(&config.dropbox, "7z")
             .into_report()
