@@ -24,11 +24,11 @@ pub(crate) fn extract(seven_zip_path: &Path, src: &Path, dest: &Path) -> io::Res
     let to = &dest.to_string_lossy();
     Command::new("7z")
         .env("PATH", seven_zip_path)
-        .args(["e", from, &format!("-o{to}")])
+        .args(["e", from, &format!("-o{to}"), "-y"])
         .output()
 }
 
-pub(crate) fn list_files_in_modified_order<T>(dir: T, extension: &str) -> io::Result<Vec<PathBuf>>
+pub(crate) fn _list_files_in_modified_order<T>(dir: T, extension: &str) -> io::Result<Vec<PathBuf>>
 where
     T: AsRef<Path>,
 {
@@ -84,21 +84,3 @@ pub(crate) fn read_input_from_user(prompt: &str) -> io::Result<String> {
 #[derive(Debug, Error)]
 #[error("Error creating file")]
 pub struct FileError;
-
-#[cfg(test)]
-mod test {
-    use crate::test::create_test_directory;
-
-    use super::*;
-
-    #[test]
-    fn test_list_save_files_in_modified_order() {
-        let test_dir = create_test_directory();
-        let ordered_files = list_files_in_modified_order(test_dir, "sav")
-            .expect("test_list_sav_files_in_modified_order");
-
-        assert_eq!(ordered_files.len(), 2);
-        assert!(ordered_files[0].to_str().unwrap().contains("test2.sav"));
-        assert!(ordered_files[1].to_str().unwrap().contains("test.sav"));
-    }
-}

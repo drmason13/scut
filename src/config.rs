@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
+    io_utils::{read_input_from_user, write_string_to_file},
     side::Side,
-    utils::{read_input_from_user, write_string_to_file},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,6 +20,8 @@ pub(crate) struct Config {
     pub(crate) seven_zip_path: PathBuf,
     pub(crate) side: Side,
     pub(crate) player: String,
+    #[serde(default)]
+    pub(crate) turn: u32,
 }
 
 impl Config {
@@ -58,12 +60,18 @@ impl Config {
             .change_context(ConfigError::CreateDefaultConfig)
             .attach_printable("Could not read from stdin to ask you for a name, try again later")?;
 
+        let turn = ask_player_for_a_turn()
+            .into_report()
+            .change_context(ConfigError::CreateDefaultConfig)
+            .attach_printable("Could not read from stdin to ask you for a turn, try again later")?;
+
         let default_config = Config {
             dropbox,
             saves,
             seven_zip_path,
             side,
             player,
+            turn,
         };
 
         default_config
@@ -82,6 +90,7 @@ impl Config {
             Key::SevenZipPath => Setting::SevenZipPath(self.seven_zip_path.clone()),
             Key::Side => Setting::Side(self.side),
             Key::Player => Setting::Player(self.player.clone()),
+            Key::Turn => Setting::Turn(self.turn),
         }
     }
 
@@ -102,11 +111,15 @@ impl Config {
             (Key::Player, Setting::Player(value)) => {
                 self.player = value;
             }
+            (Key::Turn, Setting::Turn(value)) => {
+                self.turn = value;
+            }
             (Key::Dropbox, _) => return Err(Report::new(ConfigError::InvalidSetting)),
             (Key::Saves, _) => return Err(Report::new(ConfigError::InvalidSetting)),
             (Key::SevenZipPath, _) => return Err(Report::new(ConfigError::InvalidSetting)),
             (Key::Side, _) => return Err(Report::new(ConfigError::InvalidSetting)),
             (Key::Player, _) => return Err(Report::new(ConfigError::InvalidSetting)),
+            (Key::Turn, _) => return Err(Report::new(ConfigError::InvalidSetting)),
         }
         Ok(())
     }
@@ -168,6 +181,7 @@ pub(crate) enum Key {
     SevenZipPath,
     Side,
     Player,
+    Turn,
 }
 
 impl Display for Key {
@@ -178,6 +192,7 @@ impl Display for Key {
             Key::SevenZipPath => write!(f, "seven_zip_path"),
             Key::Side => write!(f, "side"),
             Key::Player => write!(f, "player"),
+            Key::Turn => write!(f, "turn"),
         }
     }
 }
@@ -195,6 +210,7 @@ impl FromStr for Key {
             }
             "side" | "team" => Ok(Self::Side),
             "player" | "name" => Ok(Self::Player),
+            "turn" => Ok(Self::Turn),
             _ => Err(ConfigError::InvalidKey),
         }
     }
@@ -207,6 +223,7 @@ pub(crate) enum Setting {
     SevenZipPath(PathBuf),
     Side(Side),
     Player(String),
+    Turn(u32),
 }
 
 impl Display for Setting {
@@ -217,6 +234,7 @@ impl Display for Setting {
             Setting::SevenZipPath(value) => value.display().fmt(f),
             Setting::Side(value) => value.fmt(f),
             Setting::Player(value) => value.fmt(f),
+            Setting::Turn(value) => value.fmt(f),
         }
     }
 }
@@ -234,6 +252,12 @@ impl Setting {
                     .change_context(ConfigError::InvalidSetting)?,
             )),
             Key::Player => Ok(Setting::Player(value)),
+            Key::Turn => Ok(Setting::Turn(
+                value
+                    .parse()
+                    .into_report()
+                    .change_context(ConfigError::InvalidSetting)?,
+            )),
         }
     }
 }
@@ -264,6 +288,25 @@ fn ask_player_for_a_name() -> std::io::Result<String> {
             continue;
         }
         break Ok(player.to_string());
+    }
+}
+
+fn ask_player_for_a_turn() -> std::io::Result<u32> {
+    loop {
+        let turn = read_input_from_user("What turn are you on?")?;
+        let turn = turn.trim();
+
+        if turn.is_empty() {
+            println!("A turn is needed to know which save to download/upload next");
+            continue;
+        }
+        match turn.parse() {
+            Ok(turn) => break Ok(turn),
+            Err(_) => {
+                println!("That's not a valid turn number, please enter a positive integer");
+                continue;
+            }
+        };
     }
 }
 

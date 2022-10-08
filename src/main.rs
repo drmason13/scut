@@ -5,11 +5,11 @@ use error_stack::{Report, ResultExt};
 mod command;
 mod config;
 mod error;
+mod io_utils;
 mod save;
 mod side;
 #[cfg(test)]
 mod test;
-mod utils;
 
 use command::Command;
 use config::Config;
@@ -21,7 +21,7 @@ fn main() -> Result<(), Report<RuntimeError>> {
 }
 
 pub(crate) fn run(command: Command) -> Result<(), Report<RuntimeError>> {
-    let config = Config::read_config_file().change_context(RuntimeError)?;
+    let mut config = Config::read_config_file().change_context(RuntimeError)?;
 
     match command {
         Command::Config(cmd) => cmd
@@ -33,7 +33,7 @@ pub(crate) fn run(command: Command) -> Result<(), Report<RuntimeError>> {
             .change_context(RuntimeError)
             .attach_printable("Something went wrong downloading"),
         Command::Upload(cmd) => cmd
-            .run(&config)
+            .run(&mut config)
             .change_context(RuntimeError)
             .attach_printable("Something went wrong uploading"),
     }

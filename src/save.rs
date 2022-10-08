@@ -7,7 +7,7 @@ use std::{
 use either::Either;
 use thiserror::Error;
 
-use crate::side::Side;
+use crate::{config::Config, side::Side};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Save {
@@ -22,6 +22,12 @@ pub(crate) struct TurnSave {
     pub(crate) turn: u32,
 }
 
+impl Save {
+    pub(crate) fn is_autosave(&self) -> bool {
+        matches!(self, Save::Autosave)
+    }
+}
+
 impl Display for Save {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -31,10 +37,38 @@ impl Display for Save {
     }
 }
 
+impl TurnSave {
+    pub(crate) fn from_config(config: &Config) -> Self {
+        TurnSave {
+            player: Some(config.player.clone()),
+            side: config.side,
+            turn: config.turn,
+        }
+    }
+
+    pub(crate) fn next_turn(self) -> Self {
+        let next_turn = match self.side {
+            // Axis go first, so Allies play the same turn number next
+            Side::Axis => self.turn,
+            // Allies go last, so Axis play the next turn number next
+            Side::Allies => self.turn + 1,
+        };
+        TurnSave {
+            player: None,
+            side: self.side.other_side(),
+            turn: next_turn,
+        }
+    }
+}
+
 impl Display for TurnSave {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let TurnSave { side, turn, player } = self;
-        write!(f, "{side} {} {turn}", player.as_deref().unwrap_or(""))
+        if let Some(ref player) = player {
+            write!(f, "{side} {player} {turn}")
+        } else {
+            write!(f, "{side} {turn}")
+        }
     }
 }
 
@@ -57,6 +91,21 @@ impl TryFrom<&Path> for Save {
     type Error = ParseSaveError;
 
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
+        value
+            .file_name()
+            .ok_or(ParseSaveError)?
+            .to_string_lossy()
+            .split('.')
+            .next()
+            .ok_or(ParseSaveError)?
+            .parse()
+    }
+}
+
+impl TryFrom<&PathBuf> for Save {
+    type Error = ParseSaveError;
+
+    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
         value
             .file_name()
             .ok_or(ParseSaveError)?
