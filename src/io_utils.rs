@@ -1,7 +1,6 @@
 use std::{
-    fs::DirEntry,
     io,
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, Output},
 };
 
@@ -26,34 +25,6 @@ pub(crate) fn extract(seven_zip_path: &Path, src: &Path, dest: &Path) -> io::Res
         .env("PATH", seven_zip_path)
         .args(["e", from, &format!("-o{to}"), "-y"])
         .output()
-}
-
-pub(crate) fn _list_files_in_modified_order<T>(dir: T, extension: &str) -> io::Result<Vec<PathBuf>>
-where
-    T: AsRef<Path>,
-{
-    let mut entries: Vec<DirEntry> = std::fs::read_dir(dir.as_ref())?
-        .filter(|entry| match entry {
-            Ok(entry) => entry.path().extension().map(|ext| ext == extension) == Some(true),
-            Err(_) => true, // pass thru errors
-        })
-        .collect::<Result<_, _>>()?;
-
-    entries.sort_by(|a, b| {
-        b.metadata()
-            .expect("metadata")
-            .modified()
-            .expect("modified")
-            .cmp(
-                &a.metadata()
-                    .expect("metadata")
-                    .modified()
-                    .expect("modified"),
-            )
-    });
-
-    // The entries have now been sorted by their path.
-    Ok(entries.into_iter().map(|entry| entry.path()).collect())
 }
 
 pub(crate) fn write_string_to_file(content: String, path: &Path) -> Result<(), Report<FileError>> {

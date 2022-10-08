@@ -90,6 +90,14 @@ pub(crate) fn get_confirmation(prompt: &str) -> std::io::Result<bool> {
     }
 }
 
+pub(crate) fn wait_for_user_before_close(text: &str) {
+    println!("{text}");
+    println!("<Press any key to exit>");
+
+    let mut buffer = String::new();
+    std::io::stdin().read_line(&mut buffer).ok(); // ignore the result
+}
+
 #[cfg(test)]
 mod test {
     use crate::side::Side;

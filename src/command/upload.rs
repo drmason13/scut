@@ -11,7 +11,7 @@ use crate::{
     save::TurnSave,
 };
 
-use super::shared::iter_saves_in_dir;
+use super::shared::{iter_saves_in_dir, wait_for_user_before_close};
 
 #[derive(Debug, Args)]
 pub(crate) struct Upload {
@@ -92,7 +92,7 @@ impl Upload {
             }
         }
 
-        println!("Done");
+        wait_for_user_before_close("Done");
 
         Ok(())
     }

@@ -6,6 +6,8 @@ use thiserror::Error;
 
 use crate::{command::shared::iter_turn_saves_in_dir, config::Config, io_utils::extract};
 
+use super::shared::wait_for_user_before_close;
+
 #[derive(Debug, Args)]
 pub(crate) struct Download;
 
@@ -48,7 +50,7 @@ impl Download {
             return Ok(());
         }
 
-        println!("Done");
+        wait_for_user_before_close("Done");
         Ok(())
     }
 }
