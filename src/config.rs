@@ -133,9 +133,13 @@ impl Config {
             .join("config.toml"))
     }
 
-    pub(crate) fn read_config_file() -> Result<Config, Report<ConfigError>> {
-        // read config
-        let config_path = Config::file_path()?;
+    pub(crate) fn read_config_file(
+        config_path: Option<PathBuf>,
+    ) -> Result<(Config, PathBuf), Report<ConfigError>> {
+        let config_path = match config_path {
+            Some(config_path) => config_path,
+            None => Config::file_path()?,
+        };
 
         let file_result = std::fs::read_to_string(&config_path);
 
@@ -149,16 +153,16 @@ impl Config {
                     .attach_printable(
                         "Attempted to create a default config for you but there was a problem",
                     )?;
-                Ok(default_config)
+                Ok((default_config, config_path))
             }
             Err(e) => Err(e)
                 .into_report()
                 .change_context(ConfigError::Read)
                 .attach_printable("Unexpected error while reading config file"),
             Ok(ref config_content) => {
-                let result = toml::from_str(config_content);
+                let result: Result<Config, _> = toml::from_str(config_content);
                 match result {
-                    Ok(config) => Ok(config),
+                    Ok(config) => Ok((config, config_path)),
                     Err(e) => Err(e).into_report().change_context(ConfigError::Parse),
                 }
             }

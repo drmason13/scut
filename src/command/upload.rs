@@ -28,14 +28,13 @@ impl Upload {
     pub(crate) fn run(self, config: &mut Config) -> Result<(), Report<UploadError>> {
         // find and upload your autosave
 
-        if let Some(turn_override) = self.turn {
-            config
-                .set(Key::Turn, Setting::Turn(turn_override))
-                .change_context(UploadError::UpdateConfig)
-                .attach_printable_lazy(|| format!("to override the turn to {}", turn_override))?;
-        }
-
-        let next_start_save = TurnSave::from_config(config).next_turn();
+        let next_start_save = {
+            let mut config_save = TurnSave::from_config(config);
+            if let Some(turn_override) = self.turn {
+                config_save.turn = turn_override;
+            }
+            config_save.next_turn()
+        };
 
         if let Some((_autosave, path)) = iter_saves_in_dir(&config.saves, "sav")
             .into_report()
@@ -53,13 +52,16 @@ impl Upload {
                 upload_save(&path, &next_start_save, config)?;
             } else {
                 println!("User cancelled. Stopping.");
+                if self.turn.is_some() {
+                    println!("Config has not been changed");
+                }
                 return Ok(());
             }
         };
 
-        // update turn in config
+        // update turn in config to the next save ready for the next download.
         config
-            .set(Key::Turn, Setting::Turn(next_start_save.turn))
+            .set(Key::Turn, Setting::Turn(next_start_save.next_turn().turn))
             .change_context(UploadError::UpdateConfig)
             .attach_printable("after successfully loading a save")?;
 
@@ -69,10 +71,16 @@ impl Upload {
             .into_report()
             .change_context(UploadError::Read)?;
 
+        let search_turn = if let Some(turn_override) = self.turn {
+            turn_override
+        } else {
+            config.turn
+        };
+
         if let Some(Ok((save, path))) = available_saves.find(|save| match save {
             Err(_) => false,
             Ok((save, _)) => {
-                save.turn == config.turn
+                save.turn == search_turn
                     && save.side == config.side
                     // find your save
                     && save.player.as_ref() == Some(&config.player)

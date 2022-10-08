@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Subcommand;
 use error_stack::{Report, ResultExt};
 use thiserror::Error;
@@ -34,10 +36,11 @@ pub(crate) enum ConfigCmd {
 }
 
 impl ConfigCmd {
-    pub(crate) fn run(self) -> Result<(), Report<ConfigCmdError>> {
-        let config_path = Config::file_path().change_context(ConfigCmdError::Read)?;
-        let config = Config::read_config_file().change_context(ConfigCmdError::Read)?;
-
+    pub(crate) fn run(
+        self,
+        config: Config,
+        config_path: PathBuf,
+    ) -> Result<(), Report<ConfigCmdError>> {
         match self {
             Self::Show => {
                 println!("Config is located at {}", config_path.display());
@@ -55,8 +58,6 @@ impl ConfigCmd {
                 println!("config.{key} was updated successfully");
             }
             Self::Edit => {
-                let config_path = Config::file_path().change_context(ConfigCmdError::Read)?;
-
                 let new_string = loop {
                     match edit::edit(&config.to_string()) {
                         Ok(new_string) => break new_string,
@@ -118,8 +119,6 @@ impl ConfigCmd {
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub(crate) enum ConfigCmdError {
-    #[error("Failed to read config")]
-    Read,
     #[error("Failed to update config setting")]
     Set,
     #[error("Failed to edit the config directly")]

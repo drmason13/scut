@@ -9,7 +9,15 @@ use crate::{command::shared::iter_turn_saves_in_dir, config::Config, io_utils::e
 use super::shared::wait_for_user_before_close;
 
 #[derive(Debug, Args)]
-pub(crate) struct Download;
+pub(crate) struct Download {
+    /// Turn number to download.
+    ///
+    /// This will override the turn set in the config.
+    ///
+    /// If the command is successful, your config's turn will be **replaced**
+    #[arg(short, long)]
+    pub(crate) turn: Option<u32>,
+}
 
 impl Download {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
@@ -17,11 +25,17 @@ impl Download {
             .into_report()
             .change_context(DownloadError::Read)?;
 
+        let search_turn = if let Some(turn_override) = self.turn {
+            turn_override
+        } else {
+            config.turn
+        };
+
         // find turn start save and teammate's save if there is one
         if let Some(Ok((save, path))) = available_saves.find(|save| match save {
             Err(_) => false,
             Ok((save, _)) => {
-                save.turn == config.turn
+                save.turn == search_turn
                     && save.side == config.side
                     && save.player.as_ref() != Some(&config.player)
             }
@@ -37,7 +51,7 @@ impl Download {
         } else {
             wait_for_user_before_close(&format!(
                 "No save found for {} turn {}",
-                &config.side, &config.turn
+                &config.side, search_turn
             ));
             return Ok(());
         }

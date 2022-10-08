@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 use error::RuntimeError;
 use error_stack::{Report, ResultExt};
@@ -14,18 +16,30 @@ mod test;
 use command::Command;
 use config::Config;
 
-fn main() -> Result<(), Report<RuntimeError>> {
-    let cmd = Command::parse();
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub(crate) struct Cli {
+    #[command(subcommand)]
+    pub(crate) command: Command,
 
-    run(cmd)
+    /// Load config from PATH instead of the default config path
+    #[arg(short, long)]
+    pub(crate) config: Option<PathBuf>,
 }
 
-pub(crate) fn run(command: Command) -> Result<(), Report<RuntimeError>> {
-    let mut config = Config::read_config_file().change_context(RuntimeError)?;
+fn main() -> Result<(), Report<RuntimeError>> {
+    let cli = Cli::parse();
 
-    match command {
+    run(cli)
+}
+
+pub(crate) fn run(cli: Cli) -> Result<(), Report<RuntimeError>> {
+    let (mut config, config_path) =
+        Config::read_config_file(cli.config).change_context(RuntimeError)?;
+
+    match cli.command {
         Command::Config(cmd) => cmd
-            .run()
+            .run(config, config_path)
             .change_context(RuntimeError)
             .attach_printable("Something went wrong using the config"),
         Command::Download(cmd) => cmd

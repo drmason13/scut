@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::Subcommand;
 
 use self::{config::ConfigCmd, download::Download, upload::Upload};
 
@@ -7,8 +7,7 @@ mod download;
 mod shared;
 mod upload;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[derive(Subcommand, Debug)]
 pub(crate) enum Command {
     #[command(subcommand)]
     /// Read or modify the current configuration file
