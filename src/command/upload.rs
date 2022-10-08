@@ -26,8 +26,6 @@ pub(crate) struct Upload {
 
 impl Upload {
     pub(crate) fn run(self, config: &mut Config) -> Result<(), Report<UploadError>> {
-        // find and upload your autosave
-
         let next_start_save = {
             let mut config_save = TurnSave::from_config(config);
             if let Some(turn_override) = self.turn {
@@ -36,40 +34,18 @@ impl Upload {
             config_save.next_turn()
         };
 
-        if let Some((_autosave, path)) = iter_saves_in_dir(&config.saves, "sav")
+        let autosave = iter_saves_in_dir(&config.saves, "sav")
             .into_report()
             .change_context(UploadError::Read)?
             .filter_map(|result| result.ok())
-            .find(|(save, _)| save.is_autosave())
-        {
-            if get_confirmation(&format!(
-                "Found autosave file. This will be uploaded as '{}'.\nIs that OK?",
+            .find(|(save, _)| save.is_autosave());
+
+        if autosave.is_some() {
+            println!(
+                "Found autosave file. This will be uploaded as '{}'",
                 &next_start_save
-            ))
-            .into_report()
-            .change_context(UploadError::ConfirmationFailed)?
-            {
-                upload_save(&path, &next_start_save, config)?;
-            } else {
-                println!("User cancelled. Stopping.");
-                if self.turn.is_some() {
-                    println!("Config has not been changed");
-                }
-                return Ok(());
-            }
-        };
-
-        // update turn in config to the next save ready for the next download.
-        config
-            .set(Key::Turn, Setting::Turn(next_start_save.next_turn().turn))
-            .change_context(UploadError::UpdateConfig)
-            .attach_printable("after successfully loading a save")?;
-
-        // find and upload your "intermediate" save
-
-        let mut available_saves = iter_turn_saves_in_dir(&config.saves, "sav")
-            .into_report()
-            .change_context(UploadError::Read)?;
+            );
+        }
 
         let search_turn = if let Some(turn_override) = self.turn {
             turn_override
@@ -77,28 +53,42 @@ impl Upload {
             config.turn
         };
 
-        if let Some(Ok((save, path))) = available_saves.find(|save| match save {
-            Err(_) => false,
-            Ok((save, _)) => {
-                save.turn == search_turn
-                    && save.side == config.side
-                    // find your save
-                    && save.player.as_ref() == Some(&config.player)
-            }
-        }) {
-            if get_confirmation(&format!(
-                "Found your end of turn save file. This will be uploaded as '{}'.\nIs that OK?",
-                &save
-            ))
+        let end_of_turn_save = iter_turn_saves_in_dir(&config.saves, "sav")
             .into_report()
-            .change_context(UploadError::ConfirmationFailed)?
+            .change_context(UploadError::Read)?
+            .filter_map(|result| result.ok())
+            .find(|(save, _)| {
+                save.turn == search_turn
+                        && save.side == config.side
+                        // find your save
+                        && save.player.as_ref() == Some(&config.player)
+            });
+
+        if let Some((save, path)) = end_of_turn_save {
+            println!(
+                "Found your end of turn save file. This will be uploaded as '{}'",
+                &save
+            );
+
+            if get_confirmation("Is that OK?")
+                .into_report()
+                .change_context(UploadError::ConfirmationFailed)?
             {
+                if let Some((_autosave, path)) = autosave {
+                    upload_save(&path, &next_start_save, config)?;
+                }
                 upload_save(&path, &save, config)?;
             } else {
-                println!("User cancelled. Stopping.");
+                wait_for_user_before_close("User cancelled. Stopping.");
                 return Ok(());
             }
         }
+
+        // update turn in config to the next save ready for the next download.
+        config
+            .set(Key::Turn, Setting::Turn(next_start_save.next_turn().turn))
+            .change_context(UploadError::UpdateConfig)
+            .attach_printable("after successfully loading a save")?;
 
         wait_for_user_before_close("Done");
 
