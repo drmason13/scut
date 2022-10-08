@@ -21,7 +21,7 @@ pub(crate) struct Download {
 
 impl Download {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
-        let mut available_saves = iter_turn_saves_in_dir(&config.dropbox, "7z")
+        let mut available_saves = iter_turn_saves_in_dir(dbg!(&config.dropbox), "7z")
             .into_report()
             .change_context(DownloadError::Read)?;
 

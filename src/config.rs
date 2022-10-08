@@ -20,17 +20,20 @@ pub(crate) struct Config {
     pub(crate) seven_zip_path: PathBuf,
     pub(crate) side: Side,
     pub(crate) player: String,
-    #[serde(default)]
     pub(crate) turn: u32,
+
+    #[serde(skip)]
+    /// The absolute location of the config file
+    pub(crate) path: PathBuf,
 }
 
 impl Config {
-    pub(crate) fn save(&self, config_path: &Path) -> Result<(), Report<ConfigError>> {
+    pub(crate) fn save(&self) -> Result<(), Report<ConfigError>> {
         let config_toml = toml::to_string_pretty(&self)
             .into_report()
             .change_context(ConfigError::Save)?;
 
-        write_string_to_file(config_toml, config_path).change_context(ConfigError::Save)?;
+        write_string_to_file(config_toml, &self.path).change_context(ConfigError::Save)?;
 
         Ok(())
     }
@@ -72,13 +75,14 @@ impl Config {
             side,
             player,
             turn,
+            path: config_path.into(),
         };
 
         default_config
-            .save(config_path)
+            .save()
             .change_context(ConfigError::CreateDefaultConfig)?;
 
-        println!("New config written to {}", config_path.display());
+        println!("New config written to {}", default_config.path.display());
 
         Ok(default_config)
     }
@@ -122,7 +126,7 @@ impl Config {
             (Key::Turn, _) => return Err(Report::new(ConfigError::InvalidSetting)),
         }
 
-        self.save(&Config::file_path()?)?;
+        self.save()?;
         Ok(())
     }
 
@@ -135,7 +139,7 @@ impl Config {
 
     pub(crate) fn read_config_file(
         config_path: Option<PathBuf>,
-    ) -> Result<(Config, PathBuf), Report<ConfigError>> {
+    ) -> Result<Config, Report<ConfigError>> {
         let config_path = match config_path {
             Some(config_path) => config_path,
             None => Config::file_path()?,
@@ -153,7 +157,7 @@ impl Config {
                     .attach_printable(
                         "Attempted to create a default config for you but there was a problem",
                     )?;
-                Ok((default_config, config_path))
+                Ok(default_config)
             }
             Err(e) => Err(e)
                 .into_report()
@@ -162,7 +166,7 @@ impl Config {
             Ok(ref config_content) => {
                 let result: Result<Config, _> = toml::from_str(config_content);
                 match result {
-                    Ok(config) => Ok((config, config_path)),
+                    Ok(config) => Ok(config),
                     Err(e) => Err(e).into_report().change_context(ConfigError::Parse),
                 }
             }

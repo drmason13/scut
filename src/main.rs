@@ -34,12 +34,11 @@ fn main() -> Result<(), Report<RuntimeError>> {
 }
 
 pub(crate) fn run(cli: Cli) -> Result<(), Report<RuntimeError>> {
-    let (mut config, config_path) =
-        Config::read_config_file(cli.config).change_context(RuntimeError)?;
+    let mut config = Config::read_config_file(cli.config).change_context(RuntimeError)?;
 
     match cli.command {
         Command::Config(cmd) => cmd
-            .run(config, config_path)
+            .run(config)
             .change_context(RuntimeError)
             .attach_printable("Something went wrong using the config"),
         Command::Download(cmd) => cmd

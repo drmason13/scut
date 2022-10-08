@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::Subcommand;
 use error_stack::{Report, ResultExt};
 use thiserror::Error;
@@ -36,14 +34,10 @@ pub(crate) enum ConfigCmd {
 }
 
 impl ConfigCmd {
-    pub(crate) fn run(
-        self,
-        config: Config,
-        config_path: PathBuf,
-    ) -> Result<(), Report<ConfigCmdError>> {
+    pub(crate) fn run(self, config: Config) -> Result<(), Report<ConfigCmdError>> {
         match self {
             Self::Show => {
-                println!("Config is located at {}", config_path.display());
+                println!("Config is located at {}", config.path.display());
                 println!("{}", config);
             }
             Self::Get { key } => {
@@ -103,9 +97,7 @@ impl ConfigCmd {
                     }
                 };
 
-                new_config
-                    .save(&config_path)
-                    .change_context(ConfigCmdError::Edit)?;
+                new_config.save().change_context(ConfigCmdError::Edit)?;
 
                 println!("Config was updated successfully");
             }
