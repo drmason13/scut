@@ -35,7 +35,10 @@ impl Download {
             println!("Found turn start save: {}", &save);
             extract_save(&path, config)?;
         } else {
-            println!("No save found for {} turn {}", &config.side, &config.turn);
+            wait_for_user_before_close(&format!(
+                "No save found for {} turn {}",
+                &config.side, &config.turn
+            ));
             return Ok(());
         }
 
