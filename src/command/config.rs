@@ -4,6 +4,8 @@ use thiserror::Error;
 
 use crate::config::{Config, Key, Setting};
 
+use super::shared::wait_for_user_before_close;
+
 #[derive(Debug, Subcommand)]
 pub(crate) enum ConfigCmd {
     /// Display information about the current configuration
@@ -48,6 +50,7 @@ impl ConfigCmd {
             }
         }
 
+        wait_for_user_before_close("");
         Ok(())
     }
 }
