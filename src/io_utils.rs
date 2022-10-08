@@ -28,16 +28,14 @@ pub(crate) fn extract(seven_zip_path: &Path, src: &Path, dest: &Path) -> io::Res
 }
 
 pub(crate) fn write_string_to_file(content: String, path: &Path) -> Result<(), Report<FileError>> {
-    let dir = path
-        .parent()
-        .ok_or_else(|| Report::new(FileError).attach_printable("Expected an absolute path"))?;
-
-    std::fs::create_dir_all(dir)
-        .into_report()
-        .change_context(FileError)
-        .attach_printable_lazy(|| {
-            format!("Unable to create parent directory: {}", dir.display())
-        })?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)
+            .into_report()
+            .change_context(FileError)
+            .attach_printable_lazy(|| {
+                format!("Unable to create parent directory: {}", dir.display())
+            })?;
+    }
 
     std::fs::write(path, &content)
         .into_report()

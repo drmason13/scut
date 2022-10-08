@@ -80,8 +80,8 @@ impl ConfigCmd {
                     }
                 };
 
-                let new_config: Config = loop {
-                    match toml::from_str(&new_string) {
+                let new_config = loop {
+                    match Config::from_toml(&new_string, &config.path) {
                         Ok(config) => break config,
                         Err(e) => {
                             println!("Invalid config: {e}");
@@ -92,6 +92,10 @@ impl ConfigCmd {
                             {
                                 continue;
                             } else {
+                                wait_for_user_before_close(
+                                    "User has abandoned editing the config. Exiting.",
+                                );
+                                return Ok(());
                             }
                         }
                     }

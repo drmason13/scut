@@ -38,6 +38,17 @@ impl Config {
         Ok(())
     }
 
+    pub(crate) fn from_toml(
+        toml_string: &str,
+        config_path: &Path,
+    ) -> Result<Config, Report<ConfigError>> {
+        let mut config: Config = toml::from_str(toml_string)
+            .into_report()
+            .change_context(ConfigError::Parse)?;
+        config.path = config_path.into();
+        Ok(config)
+    }
+
     pub(crate) fn write_default_config_file(
         config_path: &Path,
     ) -> Result<Config, Report<ConfigError>> {
@@ -163,13 +174,7 @@ impl Config {
                 .into_report()
                 .change_context(ConfigError::Read)
                 .attach_printable("Unexpected error while reading config file"),
-            Ok(ref config_content) => {
-                let result: Result<Config, _> = toml::from_str(config_content);
-                match result {
-                    Ok(config) => Ok(config),
-                    Err(e) => Err(e).into_report().change_context(ConfigError::Parse),
-                }
-            }
+            Ok(ref config_content) => Config::from_toml(config_content, &config_path),
         }
     }
 }
