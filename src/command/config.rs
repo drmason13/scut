@@ -2,7 +2,10 @@ use clap::Subcommand;
 use error_stack::{Report, ResultExt};
 use thiserror::Error;
 
-use crate::config::{Config, Key, Setting};
+use crate::{
+    command::shared::get_confirmation,
+    config::{Config, Key, Setting},
+};
 
 use super::shared::wait_for_user_before_close;
 
@@ -25,6 +28,9 @@ pub(crate) enum ConfigCmd {
         /// the new value to use
         value: String,
     },
+
+    /// Edit the config file in the system editor
+    Edit,
 }
 
 impl ConfigCmd {
@@ -48,6 +54,60 @@ impl ConfigCmd {
                 config.set(key, value).change_context(ConfigCmdError::Set)?;
                 println!("config.{key} was updated successfully");
             }
+            Self::Edit => {
+                let config_path = Config::file_path().change_context(ConfigCmdError::Read)?;
+
+                let new_string = loop {
+                    match edit::edit(&config.to_string()) {
+                        Ok(new_string) => break new_string,
+                        Err(io_err) if io_err.kind() == std::io::ErrorKind::InvalidData => {
+                            println!("The edited config was not valid UTF-8");
+                            println!("Your changes have not been saved.");
+
+                            if get_confirmation("Would you like to try and edit the config again?")
+                                .unwrap_or(false)
+                            {
+                                continue;
+                            } else {
+                                wait_for_user_before_close("User has abandoned editing the config. Exiting.");
+                            }
+                        },
+                        Err(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                            println!("Unable to find an editor to edit the config");
+                            wait_for_user_before_close("You can edit the config from the commandline using `scut config set KEY VALUE`");
+                            return Ok(())
+                        },
+                        Err(e) => {
+                            return Err(Report::new(e)
+                            .attach_printable("Unknown error while attempting to open an editor and edit the config")
+                            .change_context(ConfigCmdError::Edit))
+                        }
+                    }
+                };
+
+                let new_config: Config = loop {
+                    match toml::from_str(&new_string) {
+                        Ok(config) => break config,
+                        Err(e) => {
+                            println!("Invalid config: {e}");
+                            println!("Your changes have not been saved.");
+
+                            if get_confirmation("Would you like to try and edit the config again?")
+                                .unwrap_or(false)
+                            {
+                                continue;
+                            } else {
+                            }
+                        }
+                    }
+                };
+
+                new_config
+                    .save(&config_path)
+                    .change_context(ConfigCmdError::Edit)?;
+
+                println!("Config was updated successfully");
+            }
         }
 
         wait_for_user_before_close("");
@@ -62,6 +122,8 @@ pub(crate) enum ConfigCmdError {
     Read,
     #[error("Failed to update config setting")]
     Set,
+    #[error("Failed to edit the config directly")]
+    Edit,
 }
 
 fn normalise(value: String) -> String {
