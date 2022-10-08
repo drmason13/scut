@@ -44,9 +44,6 @@ impl ConfigCmd {
                 let mut config = config;
                 let value = Setting::new(key, value).change_context(ConfigCmdError::Set)?;
                 config.set(key, value).change_context(ConfigCmdError::Set)?;
-                config
-                    .save(&config_path)
-                    .change_context(ConfigCmdError::Set)?;
                 println!("config.{key} was updated successfully");
             }
         }

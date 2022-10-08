@@ -121,6 +121,8 @@ impl Config {
             (Key::Player, _) => return Err(Report::new(ConfigError::InvalidSetting)),
             (Key::Turn, _) => return Err(Report::new(ConfigError::InvalidSetting)),
         }
+
+        self.save(&Config::file_path()?)?;
         Ok(())
     }
 
