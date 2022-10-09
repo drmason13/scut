@@ -13,9 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --release
-    - name: Compress
-      run: 'C:/Program Files/7-Zip/7z.exe' a scut.zip target/release/scut.exe
+      run: cargo build --release && 'C:/Program Files/7-Zip/7z.exe' a scut.zip target/release/scut.exe
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
       with:
