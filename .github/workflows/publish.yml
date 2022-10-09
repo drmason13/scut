@@ -15,7 +15,9 @@ jobs:
     - name: Build
       run: cargo build --release
     - name: Compress
-      run: "'C:/Program Files/7-Zip/7z.exe' a scut.zip target/release/scut.exe"
+      uses: edgarrc/action-7z@v1
+      with:
+        args: 7z a -t7z scut.zip target/release/scut.exe
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
       with:
