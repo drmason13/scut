@@ -27,6 +27,10 @@ pub(crate) struct Upload {
     /// If the command is successful, your config's turn will be **replaced**
     #[arg(short, long)]
     pub(crate) turn: Option<u32>,
+
+    /// Force uploading your autosave regardless of whether your teammate's save has been uploaded
+    #[arg(short, long)]
+    pub(self) force: bool,
 }
 
 /// Private helper struct for tracking what to upload, and uploading it
@@ -131,10 +135,16 @@ impl Upload {
         if check_for_team_save(config, turn, Sav)
             .into_report()
             .change_context(UploadError::Read)?
+            || self.force
         {
             uploader.next_save = find_next_save(config, turn)?;
             if let Some(ref save) = uploader.next_save {
-                println!("Your autosave will be uploaded as '{}'", save);
+                if self.force {
+                    println!("Did not find a save from your teammate for this turn.");
+                    println!("[forced] Your autosave will be uploaded as '{}'", save);
+                } else {
+                    println!("Your autosave will be uploaded as '{}'", save);
+                }
             }
         } else {
             println!("Did not find a save from your teammate for this turn. Your autosave will not be uploaded.");
