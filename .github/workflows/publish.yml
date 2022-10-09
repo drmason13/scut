@@ -15,9 +15,9 @@ jobs:
     - name: Build
       run: cargo build --release
     - name: Compress
-      uses: edgarrc/action-7z@v1
-      with:
-        args: 7z a -t7z scut.zip target/release/scut.exe
+      shell: bash
+      run: |
+        7z a scut.zip target/release/scut.exe
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
       with:
