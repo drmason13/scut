@@ -1,18 +1,23 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use clap::Args;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
 use crate::{
-    command::shared::{get_confirmation, iter_turn_saves_in_dir},
+    command::shared::get_confirmation,
     config::{Config, Key, Setting},
-    io_utils,
-    save::TurnSave,
+    io_utils::compress,
+    save::{SavOrArchive::*, TurnSave},
 };
 
-use super::shared::{iter_saves_in_dir, wait_for_user_before_close};
+use super::shared::{check_for_team_save, find_autosave, find_save, wait_for_user_before_close};
 
+/// Contains the arguments of the upload command.
+///
+/// [`Upload::run`] will run the upload command.
+///
+/// See [`command::Command`] for all commands.
 #[derive(Debug, Args)]
 pub(crate) struct Upload {
     /// Turn number to use when naming the save.
@@ -24,107 +29,167 @@ pub(crate) struct Upload {
     pub(crate) turn: Option<u32>,
 }
 
-impl Upload {
-    pub(crate) fn run(self, config: &mut Config) -> Result<(), Report<UploadError>> {
-        let next_start_save = {
-            let mut config_save = TurnSave::from_config(config);
-            if let Some(turn_override) = self.turn {
-                config_save.turn = turn_override;
-            }
-            config_save.next_turn()
-        };
+/// Private helper struct for tracking what to upload, and uploading it
+struct Uploader {
+    /// Your save from before ending turn, for your teammate.
+    ///
+    /// This is required: if there isn't an intermediate save then we shouldn't upload anything and issue a warning.
+    /// The user probably forgot to make this save.
+    your_save: UploadableSave,
 
-        let autosave = iter_saves_in_dir(&config.saves, "sav")
+    /// This is the Save for the start of the next team's turn, and the path of your autosave file from the end of your turn.
+    ///
+    /// This should only be uploaded if both team members have uploaded their saves.
+    /// We'll check for this by looking for the downloaded teammate's save for this turn in the saves folder.
+    next_save: Option<UploadableSave>,
+}
+
+/// Private helper struct for storing the information needed to upload a save
+struct UploadableSave {
+    /// path to upload from
+    src: PathBuf,
+    /// path to upload to
+    dst: PathBuf,
+    /// the turn/save being uploaded
+    save: TurnSave,
+}
+
+impl UploadableSave {
+    fn new(path: PathBuf, save: TurnSave, config: &Config) -> Result<Self, Report<UploadError>> {
+        let dst = config.dropbox.join(&format!("{}.7z", save));
+
+        Ok(UploadableSave {
+            src: path,
+            dst,
+            save,
+        })
+    }
+
+    fn upload(&self, config: &Config) -> Result<(), Report<UploadError>> {
+        println!(
+            "Compressing {src} to {dst}",
+            src = self.src.display(),
+            dst = self.dst.display(),
+        );
+
+        compress(&config.seven_zip_path, &self.src, &self.dst)
             .into_report()
-            .change_context(UploadError::Read)?
-            .filter_map(|result| result.ok())
-            .find(|(save, _)| save.is_autosave());
-
-        if autosave.is_some() {
-            println!(
-                "Found autosave file. This will be uploaded as '{}'",
-                &next_start_save
-            );
-        }
-
-        let search_turn = if let Some(turn_override) = self.turn {
-            turn_override
-        } else {
-            config.turn
-        };
-
-        let end_of_turn_save = iter_turn_saves_in_dir(&config.saves, "sav")
-            .into_report()
-            .change_context(UploadError::Read)?
-            .filter_map(|result| result.ok())
-            .find(|(save, _)| {
-                save.turn == search_turn
-                        && save.side == config.side
-                        // find your save
-                        && save.player.as_ref() == Some(&config.player)
-            });
-
-        if let Some((save, path)) = end_of_turn_save {
-            println!(
-                "Found your end of turn save file. This will be uploaded as '{}'",
-                &save
-            );
-
-            if get_confirmation("Is that OK?")
-                .into_report()
-                .change_context(UploadError::ConfirmationFailed)?
-            {
-                if let Some((_autosave, path)) = autosave {
-                    upload_save(&path, &next_start_save, config)?;
-                }
-                upload_save(&path, &save, config)?;
-            } else {
-                wait_for_user_before_close("User cancelled. Stopping.");
-                return Ok(());
-            }
-        }
-
-        // update turn in config to the next save ready for the next download.
-        config
-            .set(Key::Turn, Setting::Turn(next_start_save.next_turn().turn))
-            .change_context(UploadError::UpdateConfig)
-            .attach_printable("after successfully loading a save")?;
-
-        wait_for_user_before_close("Done");
+            .change_context(UploadError::Compress)
+            .attach_printable_lazy(|| {
+                format!(
+                    "while compressing {src} to {dst}",
+                    src = &self.src.display(),
+                    dst = &self.dst.display()
+                )
+            })?;
 
         Ok(())
     }
 }
 
-fn upload_save(path: &Path, save: &TurnSave, config: &Config) -> Result<(), Report<UploadError>> {
-    let save_name = format!("{}.7z", save);
-    let dst_path = config.dropbox.join(&save_name);
+impl Uploader {
+    fn upload_saves(self, config: &Config) -> Result<(), Report<UploadError>> {
+        self.your_save.upload(config)?;
 
-    let filename = path
-        .file_name()
-        .ok_or_else(|| Report::new(UploadError::Read))
-        .attach_printable_lazy(|| {
-            format!("path {} did not have a filename component", path.display())
-        })?;
+        if let Some(uploadable_save) = self.next_save {
+            uploadable_save.upload(config)?;
+        }
 
-    println!(
-        "Compressing {src} to {dst}",
-        src = filename.to_string_lossy(),
-        dst = dst_path.display()
-    );
+        Ok(())
+    }
+}
 
-    io_utils::compress(&config.seven_zip_path, path, &dst_path)
+impl Upload {
+    pub(crate) fn run(self, config: &mut Config) -> Result<(), Report<UploadError>> {
+        // TODO: Check that teammate save is unzipped in saves folder
+        // if it isn't, then the assumption is that you are playing the turn first and shouldn't upload a next_turn_start save yet!
+
+        let turn = if let Some(turn_override) = self.turn {
+            turn_override
+        } else {
+            config.turn
+        };
+
+        let your_save = find_your_save(config, turn)?;
+
+        let mut uploader = if let Some(save) = your_save {
+            println!(
+                "Found your save for this turn. This will be uploaded as '{}'",
+                &save
+            );
+            Uploader {
+                your_save: save,
+                next_save: None,
+            }
+        } else {
+            println!("Did not find your save for this turn.");
+            println!("Create a save before clicking end turn so your teammate can see what you did during your turn.");
+            wait_for_user_before_close("Save missing. Nothing has been uploaded. Stopping.");
+            return Ok(());
+        };
+
+        if check_for_team_save(config, turn, Sav)
+            .into_report()
+            .change_context(UploadError::Read)?
+        {
+            uploader.next_save = find_next_save(config, turn)?;
+            if let Some(ref save) = uploader.next_save {
+                println!("Your autosave will be uploaded as '{}'", save);
+            }
+        } else {
+            println!("Did not find a save from your teammate for this turn. Your autosave will not be uploaded.");
+        }
+
+        if get_confirmation("Is that OK?")
+            .into_report()
+            .change_context(UploadError::ConfirmationFailed)?
+        {
+            uploader.upload_saves(config)?;
+            // increment turn in config to the next turn ready for the next download.
+            config
+                .set(Key::Turn, Setting::Turn(turn + 1))
+                .change_context(UploadError::UpdateConfig)
+                .attach_printable("after successfully uploading a save")?;
+
+            wait_for_user_before_close("Done");
+        } else {
+            wait_for_user_before_close("User cancelled. Stopping.");
+        }
+
+        Ok(())
+    }
+}
+
+fn find_your_save(
+    config: &Config,
+    turn: u32,
+) -> Result<Option<UploadableSave>, Report<UploadError>> {
+    let saves = find_save(&config.saves, config.side, &config.player, turn, Sav)
         .into_report()
-        .change_context(UploadError::Compress)
-        .attach_printable_lazy(|| {
-            format!(
-                "while compressing {src} to {dst}",
-                src = path.display(),
-                dst = &dst_path.display()
-            )
-        })?;
+        .change_context(UploadError::Read)?;
 
-    Ok(())
+    saves
+        .map(|(save, path)| UploadableSave::new(path, save, config))
+        .transpose()
+}
+
+fn find_next_save(
+    config: &Config,
+    turn: u32,
+) -> Result<Option<UploadableSave>, Report<UploadError>> {
+    let next_start_save = {
+        let mut config_save = TurnSave::from_config(config);
+        config_save.turn = turn;
+        config_save.next_turn()
+    };
+
+    let saves = find_autosave(&config.saves)
+        .into_report()
+        .change_context(UploadError::Read)?;
+
+    saves
+        .map(|(_save, path)| UploadableSave::new(path, next_start_save, config))
+        .transpose()
 }
 
 #[non_exhaustive]
@@ -138,4 +203,10 @@ pub(crate) enum UploadError {
     ConfirmationFailed,
     #[error("There was a problem updating the config")]
     UpdateConfig,
+}
+
+impl std::fmt::Display for UploadableSave {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.save)
+    }
 }

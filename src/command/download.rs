@@ -1,12 +1,13 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use clap::Args;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{command::shared::iter_turn_saves_in_dir, config::Config, io_utils::extract};
+use crate::{config::Config, io_utils::extract, save::TurnSave, side::Side};
 
-use super::shared::wait_for_user_before_close;
+use super::shared::{self, find_turn_start_save, get_confirmation, wait_for_user_before_close};
+use crate::save::SavOrArchive::Archive;
 
 #[derive(Debug, Args)]
 pub(crate) struct Download {
@@ -19,73 +20,159 @@ pub(crate) struct Download {
     pub(crate) turn: Option<u32>,
 }
 
+struct Downloader {
+    start_save: Option<DownloadableSave>,
+    team_save: Option<DownloadableSave>,
+}
+
+struct DownloadableSave {
+    /// path to download from
+    src: PathBuf,
+    /// path to download to
+    dst: PathBuf,
+    /// the turn/save being downloaded
+    save: TurnSave,
+}
+
+impl DownloadableSave {
+    fn new(path: PathBuf, save: TurnSave, config: &Config) -> Result<Self, Report<DownloadError>> {
+        let dst = config.saves.clone();
+
+        Ok(DownloadableSave {
+            src: path,
+            dst,
+            save,
+        })
+    }
+
+    fn download(&self, config: &Config) -> Result<(), Report<DownloadError>> {
+        println!(
+            "Extracting {src} to {dst}",
+            src = self.src.display(),
+            dst = self.dst.display(),
+        );
+
+        extract(&config.seven_zip_path, &self.src, &self.dst)
+            .into_report()
+            .change_context(DownloadError::Extract)
+            .attach_printable_lazy(|| {
+                format!(
+                    "while extracting {src} to {dst}",
+                    src = &self.src.display(),
+                    dst = &self.dst.display()
+                )
+            })?;
+
+        Ok(())
+    }
+}
+
+impl Downloader {
+    fn download_saves(self, config: &Config) -> Result<(), Report<DownloadError>> {
+        if let Some(save) = self.start_save {
+            println!("Found turn start belonging: {}", save);
+            save.download(config)?;
+        }
+
+        if let Some(save) = self.team_save {
+            println!("Found turn belonging to teammate: {}", save);
+            save.download(config)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Download {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
-        let mut available_saves = iter_turn_saves_in_dir(&config.dropbox, "7z")
-            .into_report()
-            .change_context(DownloadError::Read)?;
+        // TODO: download teammate's save if you haven't got it already?
+        // They might have uploaded their previous turn after you uploaded yours, so you'll want to watch that before the other side's end of turn!
 
-        let search_turn = if let Some(turn_override) = self.turn {
+        let turn = if let Some(turn_override) = self.turn {
             turn_override
         } else {
             config.turn
         };
 
-        // find turn start save and teammate's save if there is one
-        if let Some(Ok((save, path))) = available_saves.find(|save| match save {
-            Err(_) => false,
-            Ok((save, _)) => {
-                save.turn == search_turn
-                    && save.side == config.side
-                    && save.player.as_ref() != Some(&config.player)
+        let start_save = find_start_save(config, turn)?;
+        let team_save = find_team_save(config, turn)?;
+
+        let downloader = Downloader {
+            start_save,
+            team_save,
+        };
+
+        // on the first turn, Axis (who go first), don't need to download a turn start save
+        // but they might need to download a teammate's save!
+        let is_very_first_turn = turn == 1 && config.side == Side::first();
+
+        match downloader {
+            Downloader {
+                start_save: Some(ref start_save),
+                team_save: Some(ref team_save),
+            } => {
+                println!("Found turn start save: {}", start_save);
+                println!("Found teammate's save: {}", team_save);
             }
-        }) {
-            if let Some(teammate) = save.player.as_ref() {
-                // we found a save for the right turn belonging to someone else playing on the same side as us
-                // let's assume they are a teammate!
-                println!("Found turn belonging to teammate: {}", teammate);
-                extract_save(&path, config)?;
+            Downloader {
+                start_save: Some(ref save),
+                team_save: None,
+            } => {
+                println!("Found turn start save: {}", save);
             }
-            println!("Found turn start save: {}", &save);
-            extract_save(&path, config)?;
-        } else {
-            wait_for_user_before_close(&format!(
-                "No save found for {} turn {}",
-                &config.side, search_turn
-            ));
-            return Ok(());
+            Downloader {
+                start_save: None,
+                team_save: Some(ref save),
+            } if is_very_first_turn => {
+                println!("It's the very first turn, so there's no turn start save");
+                println!("Found teammate's save: {}", save);
+            }
+            _ => {
+                println!("No save found for {} turn {}", &config.side, turn);
+                wait_for_user_before_close("Nothing to do. Stopping.");
+                return Ok(());
+            }
         }
 
-        wait_for_user_before_close("Done");
+        if get_confirmation("Is that OK?")
+            .into_report()
+            .change_context(DownloadError::ConfirmationFailed)?
+        {
+            downloader.download_saves(config)?;
+
+            wait_for_user_before_close("Done");
+        } else {
+            wait_for_user_before_close("User cancelled. Stopping.");
+        }
+
         Ok(())
     }
 }
 
-fn extract_save(path: &Path, config: &Config) -> Result<(), Report<DownloadError>> {
-    let filename = path
-        .file_name()
-        .ok_or_else(|| Report::new(DownloadError::Read))
-        .attach_printable_lazy(|| {
-            format!("path {} did not have a filename component", path.display())
-        })?;
-
-    println!(
-        "Extracting {src} to {dst}",
-        src = filename.to_string_lossy(),
-        dst = config.saves.display()
-    );
-
-    extract(&config.seven_zip_path, path, &config.saves)
+fn find_start_save(
+    config: &Config,
+    turn: u32,
+) -> Result<Option<DownloadableSave>, Report<DownloadError>> {
+    let saves = find_turn_start_save(&config.dropbox, config.side, turn)
         .into_report()
-        .change_context(DownloadError::Extract)
-        .attach_printable_lazy(|| {
-            format!(
-                "while extracting {src} to {dst}",
-                src = path.display(),
-                dst = config.dropbox.display()
-            )
-        })?;
-    Ok(())
+        .change_context(DownloadError::Read)?;
+
+    saves
+        .map(|(save, path)| DownloadableSave::new(path, save, config))
+        .transpose()
+}
+
+fn find_team_save(
+    config: &Config,
+    turn: u32,
+) -> Result<Option<DownloadableSave>, Report<DownloadError>> {
+    let saves = shared::find_team_save(&config.dropbox, config.side, &config.player, turn, Archive)
+        .into_report()
+        .change_context(DownloadError::Read)?;
+
+    saves
+        .map(|(save, path)| DownloadableSave::new(path, save, config))
+        .transpose()
 }
 
 #[non_exhaustive]
@@ -95,4 +182,12 @@ pub(crate) enum DownloadError {
     Read,
     #[error("Could not extract save from zip file")]
     Extract,
+    #[error("Could not get confirmation from user")]
+    ConfirmationFailed,
+}
+
+impl std::fmt::Display for DownloadableSave {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.save)
+    }
 }

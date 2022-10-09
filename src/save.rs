@@ -22,6 +22,21 @@ pub(crate) struct TurnSave {
     pub(crate) turn: u32,
 }
 
+/// Type wrapper around the two file formats and their extension
+pub(crate) enum SavOrArchive {
+    Sav,
+    Archive,
+}
+
+impl SavOrArchive {
+    pub(crate) fn extension(&self) -> &'static str {
+        match self {
+            Self::Sav => "sav",
+            Self::Archive => "7z",
+        }
+    }
+}
+
 impl Save {
     pub(crate) fn is_autosave(&self) -> bool {
         matches!(self, Save::Autosave)

@@ -25,6 +25,10 @@ impl Side {
             Self::Axis => Self::Allies,
         }
     }
+
+    pub(crate) fn first() -> Self {
+        Self::Axis
+    }
 }
 
 impl Display for Side {
