@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
-    io_utils::{read_input_from_user, write_string_to_file},
+    io_utils::{get_confirmation, read_input_from_user, write_string_to_file},
     side::Side,
 };
 
@@ -52,10 +52,16 @@ impl Config {
     pub(crate) fn write_default_config_file(
         config_path: &Path,
     ) -> Result<Config, Report<ConfigError>> {
-        let dropbox = dropbox_dir::personal_dir()
-            .map_err(|_| Report::new(ConfigError::CreateDefaultConfig))
-            .attach_printable("Unable to find your dropbox folder")?
-            .into();
+        let dropbox_result = dropbox_dir::personal_dir();
+
+        let dropbox = match dropbox_result {
+            Ok(dropbox) => dropbox,
+            Err(_) => ask_player_for_dropbox_folder()
+                .map_err(|_| Report::new(ConfigError::CreateDefaultConfig))
+                .attach_printable("Unable to find your dropbox folder")?,
+        }
+        .into();
+
         let home = dirs::home_dir()
             .ok_or_else(|| Report::new(ConfigError::CreateDefaultConfig))
             .attach_printable("Unable to find your documents folder")?;
@@ -319,6 +325,43 @@ fn ask_player_for_a_turn() -> std::io::Result<u32> {
             Ok(turn) => break Ok(turn),
             Err(_) => {
                 println!("That's not a valid turn number, please enter a positive integer");
+                continue;
+            }
+        };
+    }
+}
+
+fn ask_player_for_dropbox_folder() -> std::io::Result<String> {
+    println!("Unable to find your dropbox folder");
+    println!("You may not have the dropbox client installed. This is required to use scut.");
+    println!("If you have installed the dropbox client, then you can let enter your dropbox folder to continue.");
+    if !get_confirmation("Would you like to enter your dropbox folder?")? {
+        return Ok(String::new());
+    }
+    loop {
+        let dropbox =
+            read_input_from_user("Please enter the absolute path to your dropbox folder")?;
+        let dropbox = dropbox.trim();
+
+        if dropbox.is_empty() {
+            println!("That's not a valid path");
+            continue;
+        }
+        match PathBuf::from_str(dropbox) {
+            // TODO: check path exists, is absolute and valid and can be read before returning it!
+            Ok(dropbox) => match std::fs::read_dir(&dropbox) {
+                Ok(_) => break Ok(dropbox.to_string_lossy().to_string()),
+                Err(_) => {
+                    println!("scut wasn't able to list the contents of that folder, which means scut is unlikely to work properly.");
+                    if get_confirmation("Would you still like to use that folder?")? {
+                        break Ok(dropbox.to_string_lossy().to_string());
+                    } else {
+                        continue;
+                    }
+                }
+            },
+            Err(_) => {
+                println!("That's not a valid path");
                 continue;
             }
         };

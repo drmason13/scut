@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     config::Config,
-    io_utils::read_input_from_user,
+    io_utils::iter_files_with_extension,
     save::{ParseSaveError, SavOrArchive, Save, TurnSave},
     side::Side,
 };
@@ -118,13 +118,8 @@ pub(crate) fn iter_turn_saves_in_dir<'a, 'b>(
 where
     'b: 'a,
 {
-    Ok(std::fs::read_dir(dir)?
-        .map(|entry| entry.map(|e| e.path()))
-        .filter(move |path| match path {
-            Ok(path) => matches!(path.extension(), Some(ext) if ext == extension),
-            Err(_) => true, // pass thru io errors
-        })
-        .filter_map(|path| match path {
+    Ok(
+        iter_files_with_extension(dir, extension)?.filter_map(|path| match path {
             Ok(path) => {
                 let save: Result<Save, ParseSaveError> = (&path).try_into();
                 match save {
@@ -134,35 +129,8 @@ where
                 }
             }
             Err(err) => Some(Err(err)),
-        }))
-}
-
-pub(crate) fn get_confirmation(prompt: &str) -> std::io::Result<bool> {
-    loop {
-        let response = read_input_from_user(&format!("{prompt}: [Y] / N"))?;
-        let response = response.trim();
-
-        if response.is_empty() {
-            // user pressed enter
-            return Ok(true);
-        }
-        match response {
-            "Y" | "y" => break Ok(true),
-            "N" | "n" => break Ok(false),
-            _ => {
-                println!("Please confirm Y or N");
-                continue;
-            }
-        }
-    }
-}
-
-pub(crate) fn wait_for_user_before_close(text: &str) {
-    println!("{text}");
-    println!("<Press Enter to exit>");
-
-    let mut buffer = String::new();
-    std::io::stdin().read_line(&mut buffer).ok(); // ignore the result
+        }),
+    )
 }
 
 #[cfg(test)]

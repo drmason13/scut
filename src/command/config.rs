@@ -3,11 +3,9 @@ use error_stack::{Report, ResultExt};
 use thiserror::Error;
 
 use crate::{
-    command::shared::get_confirmation,
     config::{Config, Key, Setting},
+    io_utils::{get_confirmation, wait_for_user_before_close},
 };
-
-use super::shared::wait_for_user_before_close;
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum ConfigCmd {

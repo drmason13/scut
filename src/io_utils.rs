@@ -1,6 +1,6 @@
 use std::{
     io,
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Output},
 };
 
@@ -48,6 +48,49 @@ pub(crate) fn read_input_from_user(prompt: &str) -> io::Result<String> {
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
     Ok(input.trim().to_string())
+}
+
+pub(crate) fn iter_files_with_extension<'a, 'b>(
+    dir: &'a Path,
+    extension: &'b str,
+) -> io::Result<impl Iterator<Item = io::Result<PathBuf>> + 'a>
+where
+    'b: 'a,
+{
+    Ok(std::fs::read_dir(dir)?
+        .map(|entry| entry.map(|e| e.path()))
+        .filter(move |path| match path {
+            Ok(path) => matches!(path.extension(), Some(ext) if ext == extension),
+            Err(_) => true, // pass thru io errors
+        }))
+}
+
+pub(crate) fn get_confirmation(prompt: &str) -> std::io::Result<bool> {
+    loop {
+        let response = read_input_from_user(&format!("{prompt}: [Y] / N"))?;
+        let response = response.trim();
+
+        if response.is_empty() {
+            // user pressed enter
+            return Ok(true);
+        }
+        match response {
+            "Y" | "y" => break Ok(true),
+            "N" | "n" => break Ok(false),
+            _ => {
+                println!("Please confirm Y or N");
+                continue;
+            }
+        }
+    }
+}
+
+pub(crate) fn wait_for_user_before_close(text: &str) {
+    println!("{text}");
+    println!("<Press Enter to exit>");
+
+    let mut buffer = String::new();
+    std::io::stdin().read_line(&mut buffer).ok(); // ignore the result
 }
 
 #[derive(Debug, Error)]

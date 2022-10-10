@@ -4,10 +4,14 @@ use clap::Args;
 use error_stack::{IntoReport, Report, ResultExt};
 use thiserror::Error;
 
-use crate::{config::Config, io_utils::extract, save::TurnSave, side::Side};
+use crate::{
+    config::Config,
+    io_utils::{extract, get_confirmation, wait_for_user_before_close},
+    save::{SavOrArchive::Archive, TurnSave},
+    side::Side,
+};
 
-use super::shared::{self, find_turn_start_save, get_confirmation, wait_for_user_before_close};
-use crate::save::SavOrArchive::Archive;
+use super::shared::{self, find_turn_start_save};
 
 #[derive(Debug, Args)]
 pub(crate) struct Download {
