@@ -56,7 +56,7 @@ impl DownloadableSave {
             dst = self.dst.display(),
         );
 
-        extract(&config.seven_zip_path, &self.src, &self.dst)
+        let cmd_output = extract(&config.seven_zip_path, &self.src, &self.dst)
             .into_report()
             .change_context(DownloadError::Extract)
             .attach_printable_lazy(|| {
@@ -67,7 +67,14 @@ impl DownloadableSave {
                 )
             })?;
 
-        Ok(())
+        if cmd_output.status.success() {
+            Ok(())
+        } else {
+            let error = String::from_utf8_lossy(&cmd_output.stderr);
+            let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+            Err(Report::new(DownloadError::Extract))
+                .attach_printable(format!("Error running 7zip: {error}\n{stdout}"))
+        }
     }
 }
 

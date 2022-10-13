@@ -75,7 +75,7 @@ impl UploadableSave {
             dst = self.dst.display(),
         );
 
-        compress(&config.seven_zip_path, &self.src, &self.dst)
+        let cmd_output = compress(&config.seven_zip_path, &self.src, &self.dst)
             .into_report()
             .change_context(UploadError::Compress)
             .attach_printable_lazy(|| {
@@ -86,7 +86,14 @@ impl UploadableSave {
                 )
             })?;
 
-        Ok(())
+        if cmd_output.status.success() {
+            Ok(())
+        } else {
+            let error = String::from_utf8_lossy(&cmd_output.stderr);
+            let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+            Err(Report::new(UploadError::Compress))
+                .attach_printable(format!("Error running 7zip: {error}\n{stdout}"))
+        }
     }
 }
 
