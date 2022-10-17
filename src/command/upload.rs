@@ -16,9 +16,9 @@ use super::shared::{check_for_team_save, find_autosave, find_save};
 ///
 /// [`Upload::run`] will run the upload command.
 ///
-/// See [`command::Command`] for all commands.
+/// See [`crate::command::Command`] for all commands.
 #[derive(Debug, Args)]
-pub(crate) struct Upload {
+pub(crate) struct UploadCmd {
     /// Turn number to use when naming the save.
     ///
     /// This will override the turn set in the config.
@@ -109,7 +109,7 @@ impl Uploader {
     }
 }
 
-impl Upload {
+impl UploadCmd {
     pub(crate) fn run(self, config: &mut Config) -> Result<(), Report<UploadError>> {
         // TODO: Check that teammate save is unzipped in saves folder
         // if it isn't, then the assumption is that you are playing the turn first and shouldn't upload a next_turn_start save yet!

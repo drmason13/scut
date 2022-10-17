@@ -14,7 +14,7 @@ use crate::{
 use super::shared::{self, find_turn_start_save};
 
 #[derive(Debug, Args)]
-pub(crate) struct Download {
+pub(crate) struct DownloadCmd {
     /// Turn number to download.
     ///
     /// This will override the turn set in the config.
@@ -92,7 +92,7 @@ impl Downloader {
     }
 }
 
-impl Download {
+impl DownloadCmd {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
         // TODO: download teammate's save if you haven't got it already?
         // They might have uploaded their previous turn after you uploaded yours, so you'll want to watch that before the other side's end of turn!

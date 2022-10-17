@@ -120,6 +120,6 @@ pub(crate) enum ConfigCmdError {
 }
 
 fn normalise(value: String) -> String {
-    let trim_chars: &[_] = &['\'', '"', ' ', '\\'];
+    let trim_chars: &[char] = &['\'', '"', ' ', '\\'];
     value.trim_matches(trim_chars).to_string()
 }
