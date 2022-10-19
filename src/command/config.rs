@@ -7,6 +7,10 @@ use crate::{
     io_utils::{get_confirmation, wait_for_user_before_close},
 };
 
+/// Read or modify the current configuration file
+///
+/// The configuration file is used to decide what to name your saves\n
+/// when uploading, and which saves to download
 #[derive(Debug, Subcommand)]
 pub(crate) enum ConfigCmd {
     /// Display information about the current configuration
