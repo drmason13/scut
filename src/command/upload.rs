@@ -138,7 +138,7 @@ impl UploadCmd {
             return Ok(());
         };
 
-        if check_for_team_save(config, turn, Sav)
+        if check_for_team_save(config, turn)
             .into_report()
             .change_context(UploadError::Read)?
             || self.force

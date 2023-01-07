@@ -55,12 +55,14 @@ pub(crate) fn find_team_save(
     }))
 }
 
-pub(crate) fn check_for_team_save(
-    config: &Config,
-    turn: u32,
-    file_type: SavOrArchive,
-) -> std::io::Result<bool> {
-    let saves = find_team_save(&config.saves, config.side, &config.player, turn, file_type)?;
+pub(crate) fn check_for_team_save(config: &Config, turn: u32) -> std::io::Result<bool> {
+    let saves = find_team_save(
+        &config.saves,
+        config.side,
+        &config.player,
+        turn,
+        SavOrArchive::Sav,
+    )?;
 
     Ok(saves.is_some())
 }

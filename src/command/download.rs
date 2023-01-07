@@ -94,9 +94,6 @@ impl Downloader {
 
 impl DownloadCmd {
     pub(crate) fn run(self, config: &Config) -> Result<(), Report<DownloadError>> {
-        // TODO: download teammate's save if you haven't got it already?
-        // They might have uploaded their previous turn after you uploaded yours, so you'll want to watch that before the other side's end of turn!
-
         let turn = if let Some(turn_override) = self.turn {
             turn_override
         } else {
@@ -192,9 +189,39 @@ fn find_team_save(
     config: &Config,
     turn: u32,
 ) -> Result<Option<DownloadableSave>, Report<DownloadError>> {
-    let saves = shared::find_team_save(&config.dropbox, config.side, &config.player, turn, Archive)
-        .into_report()
-        .change_context(DownloadError::Read)?;
+    let team_saves_this_turn =
+        shared::find_team_save(&config.dropbox, config.side, &config.player, turn, Archive)
+            .into_report()
+            .change_context(DownloadError::Read)?;
+
+    let saves = match turn.checked_sub(1) {
+        None => team_saves_this_turn,
+        Some(0) => team_saves_this_turn,
+        Some(prev_turn) => {
+            let team_saves_prev_turn = {
+                if shared::check_for_team_save(config, prev_turn)
+                    .into_report()
+                    .change_context(DownloadError::Read)?
+                {
+                    None
+                } else {
+                    shared::find_team_save(
+                        &config.dropbox,
+                        config.side,
+                        &config.player,
+                        prev_turn,
+                        Archive,
+                    )
+                    .transpose()
+                }
+            }
+            .transpose()
+            .into_report()
+            .change_context(DownloadError::Read)?;
+
+            team_saves_this_turn.or(team_saves_prev_turn)
+        }
+    };
 
     saves
         .map(|(save, path)| DownloadableSave::new(path, save, config))
