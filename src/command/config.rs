@@ -40,11 +40,11 @@ impl ConfigCmd {
         match self {
             Self::Show => {
                 println!("Config is located at {}", config.path.display());
-                println!("{}", config);
+                println!("{config}");
             }
             Self::Get { key } => {
                 let value = config.get(key);
-                println!("{}", value);
+                println!("{value}");
             }
             Self::Set { key, value } => {
                 let value = normalise(value);

@@ -59,7 +59,7 @@ struct UploadableSave {
 
 impl UploadableSave {
     fn new(path: PathBuf, save: TurnSave, config: &Config) -> Result<Self, Report<UploadError>> {
-        let dst = config.dropbox.join(&format!("{}.7z", save));
+        let dst = config.dropbox.join(format!("{save}.7z"));
 
         Ok(UploadableSave {
             src: path,
@@ -147,9 +147,9 @@ impl UploadCmd {
             if let Some(ref save) = uploader.next_save {
                 if self.force {
                     println!("Did not find a save from your teammate for this turn.");
-                    println!("[forced] Your autosave will be uploaded as '{}'", save);
+                    println!("[forced] Your autosave will be uploaded as '{save}'");
                 } else {
-                    println!("Your autosave will be uploaded as '{}'", save);
+                    println!("Your autosave will be uploaded as '{save}'");
                 }
             }
         } else {

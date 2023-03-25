@@ -190,7 +190,7 @@ impl Display for Config {
         write!(
             f,
             "{}",
-            toml::to_string_pretty(self).unwrap_or_else(|_| format!("{:?}", self))
+            toml::to_string_pretty(self).unwrap_or_else(|_| format!("{self:?}"))
         )
     }
 }

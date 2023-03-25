@@ -37,7 +37,7 @@ pub(crate) fn write_string_to_file(content: String, path: &Path) -> Result<(), R
             })?;
     }
 
-    std::fs::write(path, &content)
+    std::fs::write(path, content)
         .into_report()
         .change_context(FileError)
         .attach_printable_lazy(|| format!("Unable to write to file: {}", path.display()))

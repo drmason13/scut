@@ -12,7 +12,6 @@ use yap::{
     Tokens,
 };
 
-use either::Either;
 use thiserror::Error;
 
 use crate::{config::Config, side::Side};

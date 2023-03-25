@@ -117,14 +117,14 @@ impl DownloadCmd {
                 start_save: Some(ref start_save),
                 team_save: Some(ref team_save),
             } => {
-                println!("Found turn start save: {}", start_save);
-                println!("Found teammate's save: {}", team_save);
+                println!("Found turn start save: {start_save}");
+                println!("Found teammate's save: {team_save}");
             }
             Downloader {
                 start_save: Some(ref save),
                 team_save: None,
             } => {
-                println!("Found turn start save: {}", save);
+                println!("Found turn start save: {save}");
                 println!("Did not find any teammate's save");
             }
             Downloader {
@@ -132,14 +132,14 @@ impl DownloadCmd {
                 team_save: Some(ref save),
             } if is_very_first_turn => {
                 println!("It's the very first turn, so there's no turn start save");
-                println!("Found teammate's save: {}", save);
+                println!("Found teammate's save: {save}");
             }
             Downloader {
                 start_save: None,
                 team_save: Some(ref save),
             } => {
                 println!("No save found for {} turn {}", &config.side, turn);
-                println!("Found teammate's save: {}", save);
+                println!("Found teammate's save: {save}");
                 println!("Maybe ask your teammate if they have a copy of the turn start save you can borrow?");
             }
             Downloader {
