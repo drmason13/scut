@@ -4,6 +4,14 @@ use std::{
     str::FromStr,
 };
 
+use yap::{
+    // Allows you to use `.into_tokens()` on strings and slices,
+    // to get an instance of the above:
+    IntoTokens,
+    // This trait has all of the parsing methods on it:
+    Tokens,
+};
+
 use either::Either;
 use thiserror::Error;
 
@@ -136,47 +144,132 @@ impl FromStr for Save {
     type Err = ParseSaveError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "autosave" {
-            return Ok(Save::Autosave);
-        }
+        let mut tokens = s.into_tokens();
 
-        let mut terms = s.split(' ');
+        parse_save(&mut tokens).ok_or(ParseSaveError)
+    }
+}
 
-        let side: Side = terms
-            .next()
-            .ok_or(ParseSaveError)?
-            .parse()
-            .map_err(|_| ParseSaveError)?;
+fn parse_save(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
+    yap::one_of!(tokens;
+        parse_autosave(tokens),
+        parse_turnsave(tokens),
+    )
+}
 
-        let turn_or_player: Either<u32, Option<String>> = match terms.next() {
-            Some(term) if term.parse::<u32>().is_ok() => Either::Left(term.parse().unwrap()),
-            Some(term) if term.to_lowercase() != "start" => Either::Right(Some(term.to_string())),
-            Some(_) => Either::Right(None),
-            None => return Err(ParseSaveError),
-        };
+fn parse_autosave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
+    yap::one_of!(tokens;
+        tokens.tokens("autosave".chars()).then_some(Save::Autosave),
+        tokens.tokens("Autosave".chars()).then_some(Save::Autosave),
+    )
+}
 
-        let (turn, player) = match turn_or_player {
-            Either::Right(player) => (
-                {
-                    // turn
-                    match terms.next() {
-                        Some(term) => term.parse::<u32>().map_err(|_| ParseSaveError)?,
-                        None => return Err(ParseSaveError),
-                    }
-                },
-                player,
-            ),
-            Either::Left(turn) => (turn, {
-                // player
-                match terms.next() {
-                    Some(term) if term.to_lowercase() != "start" => Some(term.to_string()),
-                    Some(_) => None,
-                    None => None,
-                }
-            }),
-        };
+fn parse_turnsave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
+    yap::one_of!(tokens;
+        // Side Start Turn
+        tokens.optional(|tks| {
+            let side = parse_side(tks)?;
 
-        Ok(Save::Turn(TurnSave { player, side, turn }))
+            tks.optional(|ts| ws(ts));
+
+            tks.optional(|ts| parse_start(ts));
+
+            tks.optional(|ts| ws(ts));
+
+            let turn = parse_turn(tks)?;
+
+            let more = tks.next();
+
+            if more.is_some() {
+                return None
+            }
+
+            Some(Save::Turn(TurnSave {
+                player: None,
+                side,
+                turn,
+            }))
+        }),
+
+        // Side Player[ ]Turn
+        tokens.optional(|tks| {
+            let side = parse_side(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            let player = parse_player(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            let turn = parse_turn(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            Some(Save::Turn(TurnSave {
+                player: Some(player),
+                side,
+                turn,
+            }))
+        }),
+
+        // Side Turn[ ]Player
+        tokens.optional(|tks| {
+            let side = parse_side(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            let turn = parse_turn(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            let player = parse_player(tks)?;
+
+            tks.optional(|ts| ws(ts));
+
+            Some(Save::Turn(TurnSave {
+                player: Some(player),
+                side,
+                turn,
+            }))
+        }),
+    )
+}
+
+fn ws(tokens: &mut impl Tokens<Item = char>) -> Option<()> {
+    tokens.next()?.is_ascii_whitespace().then_some(())
+}
+
+fn parse_side(tokens: &mut impl Tokens<Item = char>) -> Option<Side> {
+    yap::one_of!(tokens;
+        tokens.tokens("Axis".chars()).then_some(Side::Axis),
+        tokens.tokens("axis".chars()).then_some(Side::Axis),
+        tokens.tokens("Allies".chars()).then_some(Side::Allies),
+        tokens.tokens("allies".chars()).then_some(Side::Allies),
+    )
+}
+
+fn parse_start(tokens: &mut impl Tokens<Item = char>) -> Option<()> {
+    yap::one_of!(tokens;
+        tokens.tokens("Start".chars()).then_some(()),
+        tokens.tokens("start".chars()).then_some(()),
+    )
+}
+
+fn parse_player(tokens: &mut impl Tokens<Item = char>) -> Option<String> {
+    let matched: String = tokens.tokens_while(|tk| tk.is_alphabetic()).collect();
+
+    (!matched.is_empty()).then_some(matched)
+}
+
+fn parse_turn(tokens: &mut impl Tokens<Item = char>) -> Option<u32> {
+    let matched = tokens
+        .tokens_while(|tk| tk.is_numeric())
+        .collect::<String>();
+
+    if matched.is_empty() {
+        None
+    } else {
+        matched.parse::<u32>().ok()
     }
 }
 
@@ -237,8 +330,12 @@ mod test {
         assert_eq!(actual, expected);
 
         let save = "allies123";
-        let actual: Result<Save, ParseSaveError> = save.parse();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: None,
+            turn: 123,
+            side: Side::Allies,
+        });
         assert_eq!(actual, expected);
 
         let save = "123 axis dm";
@@ -257,13 +354,21 @@ mod test {
         assert_eq!(actual, expected);
 
         let save = "axis 123dm";
-        let actual: Result<Save, ParseSaveError> = save.parse();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("dm".into()),
+            turn: 123,
+            side: Side::Axis,
+        });
         assert_eq!(actual, expected);
 
         let save = "axis123 dm";
-        let actual: Result<Save, ParseSaveError> = save.parse();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("dm".into()),
+            turn: 123,
+            side: Side::Axis,
+        });
         assert_eq!(actual, expected);
     }
 
@@ -316,8 +421,12 @@ mod test {
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/allies123.sav");
-        let actual: Result<Save, ParseSaveError> = save.try_into();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.try_into().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: None,
+            turn: 123,
+            side: Side::Allies,
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/123 axis dm.sav");
@@ -336,13 +445,21 @@ mod test {
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/axis 123dm.sav");
-        let actual: Result<Save, ParseSaveError> = save.try_into();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.try_into().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("dm".into()),
+            turn: 123,
+            side: Side::Axis,
+        });
         assert_eq!(actual, expected);
 
         let save = PathBuf::from("foo/bar/axis123 dm.sav");
-        let actual: Result<Save, ParseSaveError> = save.try_into();
-        let expected = Err(ParseSaveError);
+        let actual: Save = save.try_into().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("dm".into()),
+            turn: 123,
+            side: Side::Axis,
+        });
         assert_eq!(actual, expected);
     }
 }

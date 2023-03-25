@@ -15,6 +15,7 @@ error-stack = { git = "https://github.com/hashintel/hash", features = ["pretty-p
 serde = { version = "1.0.145", features = ["derive"] }
 thiserror = "1.0.36"
 toml = "0.5.9"
+yap = "0.10.0"
 
 [dev-dependencies]
 tempfile = "3.3.0"
