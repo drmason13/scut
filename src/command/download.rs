@@ -7,7 +7,10 @@ use thiserror::Error;
 use crate::{
     config::Config,
     io_utils::{extract, get_confirmation, wait_for_user_before_close},
-    save::{SavOrArchive::Archive, TurnSave},
+    save::{
+        SavOrArchive::{Archive, Sav},
+        TurnSave,
+    },
     side::Side,
 };
 
@@ -218,14 +221,24 @@ fn find_team_saves(
     config: &Config,
     turn: u32,
 ) -> Result<Vec<DownloadableSave>, Report<DownloadError>> {
+    // find all parts of the teammate's save for the current turn
+    // find all parts of the teammate's save for the previous turn that we don't already have downloaded.
+
     let mut saves =
         shared::find_team_saves(&config.dropbox, config.side, &config.player, turn, Archive)
             .into_report()
             .change_context(DownloadError::Read)?;
 
     match turn.checked_sub(1) {
-        None | Some(0) => {}
+        None | Some(0) => {
+            // First turn so no previous turn to check
+        }
         Some(prev_turn) => {
+            let already_downloaded_team_saves_prev_turn =
+                shared::find_team_saves(&config.saves, config.side, &config.player, prev_turn, Sav)
+                    .into_report()
+                    .change_context(DownloadError::Read)?;
+
             let mut team_saves_prev_turn = shared::find_team_saves(
                 &config.dropbox,
                 config.side,
@@ -234,9 +247,16 @@ fn find_team_saves(
                 Archive,
             )
             .into_report()
-            .change_context(DownloadError::Read)?;
+            .change_context(DownloadError::Read)?
+            .into_iter()
+            .filter(|new_save| {
+                !already_downloaded_team_saves_prev_turn
+                    .iter()
+                    .any(|old_save| new_save.0 == old_save.0)
+            })
+            .collect();
 
-            saves.append(&mut team_saves_prev_turn)
+            saves.append(&mut team_saves_prev_turn);
         }
     };
 
