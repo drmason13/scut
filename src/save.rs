@@ -27,6 +27,7 @@ pub(crate) struct TurnSave {
     pub(crate) player: Option<String>,
     pub(crate) side: Side,
     pub(crate) turn: u32,
+    pub(crate) part: Option<String>,
 }
 
 /// Type wrapper around the two file formats and their extension
@@ -65,6 +66,7 @@ impl TurnSave {
             player: Some(config.player.clone()),
             side: config.side,
             turn: config.turn,
+            part: None,
         }
     }
 
@@ -79,17 +81,23 @@ impl TurnSave {
             player: None,
             side: self.side.other_side(),
             turn: next_turn,
+            part: None,
         }
     }
 }
 
 impl Display for TurnSave {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let TurnSave { side, turn, player } = self;
-        if let Some(ref player) = player {
-            write!(f, "{side} {player} {turn}")
-        } else {
-            write!(f, "{side} {turn}")
+        let TurnSave {
+            side,
+            turn,
+            player,
+            part,
+        } = self;
+        match (player, part) {
+            (Some(ref player), Some(ref part)) => write!(f, "{side} {player} {turn}{part}"),
+            (Some(ref player), None) => write!(f, "{side} {player} {turn}"),
+            _ => write!(f, "{side} {turn}"),
         }
     }
 }
@@ -187,6 +195,7 @@ fn parse_turnsave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
                 player: None,
                 side,
                 turn,
+                part: None,
             }))
         }),
 
@@ -204,10 +213,13 @@ fn parse_turnsave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
 
             tks.optional(|ts| ws(ts));
 
+            let part = tks.optional(|ts| parse_part(ts));
+
             Some(Save::Turn(TurnSave {
                 player: Some(player),
                 side,
                 turn,
+                part,
             }))
         }),
 
@@ -225,10 +237,13 @@ fn parse_turnsave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
 
             tks.optional(|ts| ws(ts));
 
+            let part = tks.optional(|ts| parse_part(ts));
+
             Some(Save::Turn(TurnSave {
                 player: Some(player),
                 side,
                 turn,
+                part,
             }))
         }),
     )
@@ -272,6 +287,20 @@ fn parse_turn(tokens: &mut impl Tokens<Item = char>) -> Option<u32> {
     }
 }
 
+fn parse_part(tokens: &mut impl Tokens<Item = char>) -> Option<String> {
+    tokens.optional(|tks| tks.tokens("part".chars()).then_some(()));
+    tokens.optional(|tks| ws(tks));
+
+    let matched: String = tokens
+        .tokens_while(|tk| tk.is_alphanumeric() || tk.is_ascii_whitespace())
+        .collect();
+    if matched.is_empty() {
+        None
+    } else {
+        Some(matched)
+    }
+}
+
 #[derive(Debug, Error, PartialEq)]
 #[error("Could not parse save filename")]
 pub(crate) struct ParseSaveError;
@@ -288,6 +317,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -297,6 +327,7 @@ mod test {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -306,6 +337,7 @@ mod test {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -315,6 +347,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -334,6 +367,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -358,6 +392,7 @@ mod test {
             player: Some("dm".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -367,7 +402,53 @@ mod test {
             player: Some("dm".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
+        assert_eq!(actual, expected);
+
+        let save = "Allies 123 DM part A";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
+            turn: 123,
+            side: Side::Allies,
+            part: Some("A".into()),
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Allies 123 DMB";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DMB".into()),
+            turn: 123,
+            side: Side::Allies,
+            part: None,
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Allies DM 123C";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
+            turn: 123,
+            side: Side::Allies,
+            part: Some("C".into()),
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Allies DM 123 D";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
+            turn: 123,
+            side: Side::Allies,
+            part: Some("D".into()),
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Allies DM Part 123 D";
+        let actual: Result<Save, ParseSaveError> = save.parse();
+        let expected = Err(ParseSaveError);
         assert_eq!(actual, expected);
     }
 
@@ -379,6 +460,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -388,6 +470,7 @@ mod test {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -397,6 +480,7 @@ mod test {
             player: Some("DM".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -406,6 +490,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -425,6 +510,7 @@ mod test {
             player: None,
             turn: 123,
             side: Side::Allies,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -449,6 +535,7 @@ mod test {
             player: Some("dm".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
 
@@ -458,6 +545,7 @@ mod test {
             player: Some("dm".into()),
             turn: 123,
             side: Side::Axis,
+            part: None,
         });
         assert_eq!(actual, expected);
     }

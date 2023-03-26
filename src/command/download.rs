@@ -26,7 +26,7 @@ pub(crate) struct DownloadCmd {
 
 struct Downloader {
     start_save: Option<DownloadableSave>,
-    team_save: Option<DownloadableSave>,
+    team_saves: Vec<DownloadableSave>,
 }
 
 struct DownloadableSave {
@@ -84,7 +84,7 @@ impl Downloader {
             save.download(config)?;
         }
 
-        if let Some(save) = self.team_save {
+        for save in self.team_saves {
             save.download(config)?;
         }
 
@@ -101,51 +101,80 @@ impl DownloadCmd {
         };
 
         let start_save = find_start_save(config, turn)?;
-        let team_save = find_team_save(config, turn)?;
+        let team_saves = find_team_saves(config, turn)?;
+        let count_of_team_saves = team_saves.len();
 
         let downloader = Downloader {
             start_save,
-            team_save,
+            team_saves,
         };
 
         // on the first turn, Axis (who go first), don't need to download a turn start save
         // but they might need to download a teammate's save!
         let is_very_first_turn = turn == 1 && config.side == Side::first();
 
-        match downloader {
+        match &downloader {
             Downloader {
                 start_save: Some(ref start_save),
-                team_save: Some(ref team_save),
-            } => {
+                team_saves,
+            } if count_of_team_saves == 1 => {
                 println!("Found turn start save: {start_save}");
-                println!("Found teammate's save: {team_save}");
+                println!("Found teammate's save: {}", team_saves[0]);
+            }
+            Downloader {
+                start_save: Some(ref start_save),
+                team_saves,
+            } if count_of_team_saves > 1 => {
+                println!("Found turn start save: {start_save}");
+                println!("Found multiple parts to teammate's save:");
+                for save in team_saves {
+                    println!("\t{save}");
+                }
             }
             Downloader {
                 start_save: Some(ref save),
-                team_save: None,
-            } => {
+                team_saves: _,
+            } if count_of_team_saves == 0 => {
                 println!("Found turn start save: {save}");
                 println!("Did not find any teammate's save");
             }
             Downloader {
                 start_save: None,
-                team_save: Some(ref save),
-            } if is_very_first_turn => {
+                team_saves,
+            } if is_very_first_turn && count_of_team_saves == 1 => {
                 println!("It's the very first turn, so there's no turn start save");
-                println!("Found teammate's save: {save}");
+                println!("Found teammate's save: {}", team_saves[0]);
             }
             Downloader {
                 start_save: None,
-                team_save: Some(ref save),
-            } => {
+                team_saves,
+            } if is_very_first_turn && count_of_team_saves > 1 => {
+                println!("It's the very first turn, so there's no turn start save");
+                println!("Found multiple parts to teammate's save:");
+                for save in team_saves {
+                    println!("\t{save}");
+                }
+            }
+            Downloader {
+                start_save: None,
+                team_saves,
+            } if count_of_team_saves == 1 => {
                 println!("No save found for {} turn {}", &config.side, turn);
-                println!("Found teammate's save: {save}");
+                println!("Found teammate's save: {}", team_saves[0]);
                 println!("Maybe ask your teammate if they have a copy of the turn start save you can borrow?");
             }
             Downloader {
                 start_save: None,
-                team_save: None,
-            } => {
+                team_saves,
+            } if count_of_team_saves > 1 => {
+                println!("No save found for {} turn {}", &config.side, turn);
+                println!("Found multiple parts to teammate's save:");
+                for save in team_saves {
+                    println!("\t{save}");
+                }
+                println!("Maybe ask your teammate if they have a copy of the turn start save you can borrow?");
+            }
+            _ => {
                 if is_very_first_turn {
                     println!("It's the very first turn, so there's no turn start save");
                     println!("Did not find any teammate's save");
@@ -185,47 +214,36 @@ fn find_start_save(
         .transpose()
 }
 
-fn find_team_save(
+fn find_team_saves(
     config: &Config,
     turn: u32,
-) -> Result<Option<DownloadableSave>, Report<DownloadError>> {
-    let team_saves_this_turn =
-        shared::find_team_save(&config.dropbox, config.side, &config.player, turn, Archive)
+) -> Result<Vec<DownloadableSave>, Report<DownloadError>> {
+    let mut saves =
+        shared::find_team_saves(&config.dropbox, config.side, &config.player, turn, Archive)
             .into_report()
             .change_context(DownloadError::Read)?;
 
-    let saves = match turn.checked_sub(1) {
-        None => team_saves_this_turn,
-        Some(0) => team_saves_this_turn,
+    match turn.checked_sub(1) {
+        None | Some(0) => {}
         Some(prev_turn) => {
-            let team_saves_prev_turn = {
-                if shared::check_for_team_save(config, prev_turn)
-                    .into_report()
-                    .change_context(DownloadError::Read)?
-                {
-                    None
-                } else {
-                    shared::find_team_save(
-                        &config.dropbox,
-                        config.side,
-                        &config.player,
-                        prev_turn,
-                        Archive,
-                    )
-                    .transpose()
-                }
-            }
-            .transpose()
+            let mut team_saves_prev_turn = shared::find_team_saves(
+                &config.dropbox,
+                config.side,
+                &config.player,
+                prev_turn,
+                Archive,
+            )
             .into_report()
             .change_context(DownloadError::Read)?;
 
-            team_saves_this_turn.or(team_saves_prev_turn)
+            saves.append(&mut team_saves_prev_turn)
         }
     };
 
     saves
+        .into_iter()
         .map(|(save, path)| DownloadableSave::new(path, save, config))
-        .transpose()
+        .collect()
 }
 
 #[non_exhaustive]

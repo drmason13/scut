@@ -29,12 +29,15 @@ pub(crate) fn find_save(
     player: &String,
     turn: u32,
     file_type: SavOrArchive,
-) -> std::io::Result<Option<(TurnSave, PathBuf)>> {
+) -> std::io::Result<Vec<(TurnSave, PathBuf)>> {
     let saves = iter_turn_saves_in_dir(dir, file_type.extension())?;
 
-    Ok(saves.filter_map(|result| result.ok()).find(|(save, _)| {
-        save.turn == turn && save.side == side && save.player.as_ref() == Some(player)
-    }))
+    Ok(saves
+        .filter_map(|result| result.ok())
+        .filter(|(save, _)| {
+            save.turn == turn && save.side == side && save.player.as_ref() == Some(player)
+        })
+        .collect())
 }
 
 /// find a save in `dir` from a teammate of the given `player`, `side` for the given `turn`
@@ -53,6 +56,27 @@ pub(crate) fn find_team_save(
             && save.player.is_some()
             && save.player.as_ref() != Some(player)
     }))
+}
+
+/// find all saves in `dir` from a teammate of the given `player`, `side` for the given `turn`
+pub(crate) fn find_team_saves(
+    dir: &Path,
+    side: Side,
+    player: &String,
+    turn: u32,
+    file_type: SavOrArchive,
+) -> std::io::Result<Vec<(TurnSave, PathBuf)>> {
+    let saves = iter_turn_saves_in_dir(dir, file_type.extension())?;
+
+    Ok(saves
+        .filter_map(|result| result.ok())
+        .filter(|(save, _)| {
+            save.turn == turn
+                && save.side == side
+                && save.player.is_some()
+                && save.player.as_ref() != Some(player)
+        })
+        .collect())
 }
 
 pub(crate) fn check_for_team_save(config: &Config, turn: u32) -> std::io::Result<bool> {

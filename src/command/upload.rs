@@ -38,7 +38,7 @@ struct Uploader {
     ///
     /// This is required: if there isn't an intermediate save then we shouldn't upload anything and issue a warning.
     /// The user probably forgot to make this save.
-    your_save: UploadableSave,
+    your_saves: Vec<UploadableSave>,
 
     /// This is the Save for the start of the next team's turn, and the path of your autosave file from the end of your turn.
     ///
@@ -99,7 +99,9 @@ impl UploadableSave {
 
 impl Uploader {
     fn upload_saves(self, config: &Config) -> Result<(), Report<UploadError>> {
-        self.your_save.upload(config)?;
+        for save in self.your_saves {
+            save.upload(config)?;
+        }
 
         if let Some(uploadable_save) = self.next_save {
             uploadable_save.upload(config)?;
@@ -120,15 +122,25 @@ impl UploadCmd {
             config.turn
         };
 
-        let your_save = find_your_save(config, turn)?;
+        let your_saves = find_your_saves(config, turn)?;
 
-        let mut uploader = if let Some(save) = your_save {
-            println!(
-                "Found your save for this turn. This will be uploaded as '{}'",
-                &save
-            );
+        let mut uploader = if !your_saves.is_empty() {
+            if your_saves.len() == 1 {
+                println!(
+                    "Found your save for this turn. This will be uploaded as '{}'",
+                    &your_saves[0]
+                );
+            } else {
+                println!(
+                    "Found multiple parts to your save for this turn. These will be uploaded as:"
+                );
+                for save in &your_saves {
+                    println!("\t{save}");
+                }
+            }
+
             Uploader {
-                your_save: save,
+                your_saves,
                 next_save: None,
             }
         } else {
@@ -138,14 +150,14 @@ impl UploadCmd {
             return Ok(());
         };
 
-        if check_for_team_save(config, turn)
+        let found_team_save = check_for_team_save(config, turn)
             .into_report()
-            .change_context(UploadError::Read)?
-            || self.force
-        {
+            .change_context(UploadError::Read)?;
+
+        if found_team_save || self.force {
             uploader.next_save = find_next_save(config, turn)?;
             if let Some(ref save) = uploader.next_save {
-                if self.force {
+                if !found_team_save && self.force {
                     println!("Did not find a save from your teammate for this turn.");
                     println!("[forced] Your autosave will be uploaded as '{save}'");
                 } else {
@@ -176,17 +188,13 @@ impl UploadCmd {
     }
 }
 
-fn find_your_save(
-    config: &Config,
-    turn: u32,
-) -> Result<Option<UploadableSave>, Report<UploadError>> {
-    let saves = find_save(&config.saves, config.side, &config.player, turn, Sav)
+fn find_your_saves(config: &Config, turn: u32) -> Result<Vec<UploadableSave>, Report<UploadError>> {
+    find_save(&config.saves, config.side, &config.player, turn, Sav)
         .into_report()
-        .change_context(UploadError::Read)?;
-
-    saves
+        .change_context(UploadError::Read)?
+        .into_iter()
         .map(|(save, path)| UploadableSave::new(path, save, config))
-        .transpose()
+        .collect::<Result<Vec<_>, Report<UploadError>>>()
 }
 
 fn find_next_save(
