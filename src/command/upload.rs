@@ -55,6 +55,8 @@ struct UploadableSave {
     dst: PathBuf,
     /// the turn/save being uploaded
     save: TurnSave,
+    /// confirmation that the user wants to upload the save
+    confirmed: bool,
 }
 
 impl UploadableSave {
@@ -65,6 +67,7 @@ impl UploadableSave {
             src: path,
             dst,
             save,
+            confirmed: false,
         })
     }
 
@@ -98,16 +101,50 @@ impl UploadableSave {
 }
 
 impl Uploader {
-    fn upload_saves(self, config: &Config) -> Result<(), Report<UploadError>> {
-        for save in self.your_saves {
-            save.upload(config)?;
+    fn upload_saves(
+        mut self,
+        config: &Config,
+        found_team_save: bool,
+        force: bool,
+    ) -> Result<bool, Report<UploadError>> {
+        // confirm saves
+        for save in self.your_saves.iter_mut() {
+            if get_confirmation(format!("Do you want to upload '{save}'?").as_str())
+                .into_report()
+                .change_context(UploadError::ConfirmationFailed)?
+            {
+                save.confirmed = true;
+            }
         }
 
-        if let Some(uploadable_save) = self.next_save {
-            uploadable_save.upload(config)?;
+        // confirm autosave as next turn save
+        if let Some(ref mut save) = self.next_save {
+            save.confirmed =
+                get_confirmation(format!("Do you want to upload autosave as '{save}'?").as_str())
+                    .into_report()
+                    .change_context(UploadError::ConfirmationFailed)?
+        };
+
+        // upload saves
+        for save in self.your_saves.iter_mut() {
+            if save.confirmed {
+                save.upload(config)?;
+            }
         }
 
-        Ok(())
+        // upload autosave
+        let mut autosave_uploaded = false;
+
+        if found_team_save || force {
+            if let Some(ref save) = self.next_save {
+                if save.confirmed {
+                    save.upload(config)?;
+                    autosave_uploaded = true;
+                }
+            }
+        };
+
+        Ok(autosave_uploaded)
     }
 }
 
@@ -125,20 +162,6 @@ impl UploadCmd {
         let your_saves = find_your_saves(config, turn)?;
 
         let mut uploader = if !your_saves.is_empty() {
-            if your_saves.len() == 1 {
-                println!(
-                    "Found your save for this turn. This will be uploaded as '{}'",
-                    &your_saves[0]
-                );
-            } else {
-                println!(
-                    "Found multiple parts to your save for this turn. These will be uploaded as:"
-                );
-                for save in &your_saves {
-                    println!("\t{save}");
-                }
-            }
-
             Uploader {
                 your_saves,
                 next_save: None,
@@ -154,35 +177,26 @@ impl UploadCmd {
             .into_report()
             .change_context(UploadError::Read)?;
 
-        if found_team_save || self.force {
-            uploader.next_save = find_next_save(config, turn)?;
-            if let Some(ref save) = uploader.next_save {
-                if !found_team_save && self.force {
-                    println!("Did not find a save from your teammate for this turn.");
-                    println!("[forced] Your autosave will be uploaded as '{save}'");
-                } else {
-                    println!("Your autosave will be uploaded as '{save}'");
-                }
-            }
-        } else {
-            println!("Did not find a save from your teammate for this turn. Your autosave will not be uploaded.");
+        uploader.next_save = find_next_save(config, turn)?;
+
+        if !found_team_save {
+            println!("Did not find a save from your teammate for this turn.");
         }
 
-        if get_confirmation("Is that OK?")
-            .into_report()
-            .change_context(UploadError::ConfirmationFailed)?
-        {
-            uploader.upload_saves(config)?;
+        let uploaded_next_save = uploader.upload_saves(config, found_team_save, self.force)?;
+
+        let prompt = if uploaded_next_save {
             // increment turn in config to the next turn ready for the next download.
             config
                 .set(Key::Turn, Setting::Turn(turn + 1))
                 .change_context(UploadError::UpdateConfig)
                 .attach_printable("after successfully uploading a save")?;
-
-            wait_for_user_before_close("Done");
+            format!("Done. It will be turn {} next", turn + 1)
         } else {
-            wait_for_user_before_close("User cancelled. Stopping.");
-        }
+            format!("Ok. It is still turn {turn}")
+        };
+
+        wait_for_user_before_close(prompt.as_str());
 
         Ok(())
     }
