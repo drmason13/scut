@@ -4,13 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use yap::{
-    // Allows you to use `.into_tokens()` on strings and slices,
-    // to get an instance of the above:
-    IntoTokens,
-    // This trait has all of the parsing methods on it:
-    Tokens,
-};
+use parsely::{alpha, alphanum, char, digit, token, Lex, Parse, ParseResult};
 
 use thiserror::Error;
 
@@ -151,154 +145,122 @@ impl FromStr for Save {
     type Err = ParseSaveError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut tokens = s.into_tokens();
-
-        parse_save(&mut tokens).ok_or(ParseSaveError)
+        parse_save(s).ok_or(ParseSaveError)
     }
 }
 
-fn parse_save(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
-    yap::one_of!(tokens;
-        parse_autosave(tokens),
-        parse_turnsave(tokens),
-    )
+fn parse_save(input: &str) -> Option<Save> {
+    let (save, _) = parse_autosave.or(parse_turnsave).parse(input).ok()?;
+
+    Some(save)
 }
 
-fn parse_autosave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
-    yap::one_of!(tokens;
-        tokens.tokens("autosave".chars()).then_some(Save::Autosave),
-        tokens.tokens("Autosave".chars()).then_some(Save::Autosave),
-    )
+fn parse_autosave(input: &str) -> ParseResult<'_, Save> {
+    token("autosave")
+        .or(token("Autosave"))
+        .map(|_| Save::Autosave)
+        .parse(input)
 }
 
-fn parse_turnsave(tokens: &mut impl Tokens<Item = char>) -> Option<Save> {
-    yap::one_of!(tokens;
-        // Side Start Turn
-        tokens.optional(|tks| {
-            let side = parse_side(tks)?;
+fn parse_side(input: &str) -> ParseResult<'_, Side> {
+    token("Allies")
+        .or(token("allies"))
+        .map(|_| Side::Allies)
+        .or(token("Axis").or(token("axis")).map(|_| Side::Axis))
+        .parse(input)
+}
 
-            tks.optional(|ts| ws(ts));
+fn parse_player(input: &str) -> ParseResult<'_, String> {
+    alpha().many(1..100).map(|s| s.to_string()).parse(input)
+}
 
-            tks.optional(|ts| parse_start(ts));
+fn parse_turn(input: &str) -> ParseResult<'_, u32> {
+    digit()
+        .many(1..5)
+        .try_map(|n| n.parse::<u32>())
+        .parse(input)
+}
 
-            tks.optional(|ts| ws(ts));
+fn parse_part(input: &str) -> ParseResult<'_, String> {
+    let (_, remaining) = token("part ").optional().lex(input)?;
+    alphanum()
+        .many(1..100)
+        .map(|s| s.to_string())
+        .parse(remaining)
+}
 
-            let turn = parse_turn(tks)?;
-
-            let more = tks.next();
-
-            if more.is_some() {
-                return None
-            }
-
-            Some(Save::Turn(TurnSave {
+fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
+    // Side Start Turn
+    // "Axis[ ]start 123";
+    let side_start_turn = parse_side
+        .then_skip(char(' ').optional())
+        .then_skip(token("start").any_case())
+        .then_skip(char(' ').optional())
+        .then(parse_turn)
+        .mapped(|(side, turn)| {
+            Save::Turn(TurnSave {
                 player: None,
                 side,
                 turn,
                 part: None,
-            }))
-        }),
+            })
+        });
 
-        // Side Player[ ]Turn
-        tokens.optional(|tks| {
-            let side = parse_side(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let player = parse_player(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let turn = parse_turn(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let part = tks.optional(|ts| parse_part(ts));
-
-            Some(Save::Turn(TurnSave {
+    // Side[ ]Player[ ]Turn
+    // "Axis DM 123";
+    let side_player_turn = parse_side
+        .then_skip(char(' ').optional())
+        .then(parse_player)
+        .then_skip(char(' ').optional())
+        .then(parse_turn)
+        .then_skip(char(' ').optional())
+        .then(parse_part.optional())
+        .mapped(|(((side, player), turn), part)| {
+            Save::Turn(TurnSave {
                 player: Some(player),
                 side,
                 turn,
                 part,
-            }))
-        }),
+            })
+        });
 
-        // Side Turn[ ]Player
-        tokens.optional(|tks| {
-            let side = parse_side(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let turn = parse_turn(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let player = parse_player(tks)?;
-
-            tks.optional(|ts| ws(ts));
-
-            let part = tks.optional(|ts| parse_part(ts));
-
-            Some(Save::Turn(TurnSave {
+    // Side[ ]Turn[ ]Player
+    // "Axis 123 DM";
+    let side_turn_player = parse_side
+        .then_skip(char(' ').optional())
+        .then(parse_turn)
+        .then_skip(char(' ').optional())
+        .then(parse_player)
+        .then_skip(char(' ').optional())
+        .then(parse_part.optional())
+        .mapped(|(((side, turn), player), part)| {
+            Save::Turn(TurnSave {
                 player: Some(player),
                 side,
                 turn,
                 part,
-            }))
-        }),
-    )
-}
+            })
+        });
 
-fn ws(tokens: &mut impl Tokens<Item = char>) -> Option<()> {
-    tokens.next()?.is_ascii_whitespace().then_some(())
-}
+    // Side[ ]Turn
+    // "Axis 123";
+    let side_turn = parse_side
+        .then_skip(char(' ').optional())
+        .then(parse_turn)
+        .mapped(|(side, turn)| {
+            Save::Turn(TurnSave {
+                player: None,
+                side,
+                turn,
+                part: None,
+            })
+        });
 
-fn parse_side(tokens: &mut impl Tokens<Item = char>) -> Option<Side> {
-    yap::one_of!(tokens;
-        tokens.tokens("Axis".chars()).then_some(Side::Axis),
-        tokens.tokens("axis".chars()).then_some(Side::Axis),
-        tokens.tokens("Allies".chars()).then_some(Side::Allies),
-        tokens.tokens("allies".chars()).then_some(Side::Allies),
-    )
-}
-
-fn parse_start(tokens: &mut impl Tokens<Item = char>) -> Option<()> {
-    yap::one_of!(tokens;
-        tokens.tokens("Start".chars()).then_some(()),
-        tokens.tokens("start".chars()).then_some(()),
-    )
-}
-
-fn parse_player(tokens: &mut impl Tokens<Item = char>) -> Option<String> {
-    let matched: String = tokens.tokens_while(|tk| tk.is_alphabetic()).collect();
-
-    (!matched.is_empty()).then_some(matched)
-}
-
-fn parse_turn(tokens: &mut impl Tokens<Item = char>) -> Option<u32> {
-    let matched = tokens
-        .tokens_while(|tk| tk.is_numeric())
-        .collect::<String>();
-
-    if matched.is_empty() {
-        None
-    } else {
-        matched.parse::<u32>().ok()
-    }
-}
-
-fn parse_part(tokens: &mut impl Tokens<Item = char>) -> Option<String> {
-    tokens.optional(|tks| tks.tokens("part".chars()).then_some(()));
-    tokens.optional(|tks| ws(tks));
-
-    let matched: String = tokens
-        .tokens_while(|tk| tk.is_alphanumeric() || tk.is_ascii_whitespace())
-        .collect();
-    if matched.is_empty() {
-        None
-    } else {
-        Some(matched)
-    }
+    (side_start_turn)
+        .or(side_turn_player)
+        .or(side_player_turn)
+        .or(side_turn)
+        .parse(input)
 }
 
 #[derive(Debug, Error, PartialEq)]
