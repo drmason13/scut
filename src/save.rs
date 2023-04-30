@@ -197,7 +197,7 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
         .then_skip(token("start").any_case())
         .then_skip(char(' ').optional())
         .then(parse_turn)
-        .mapped(|(side, turn)| {
+        .map(|(side, turn)| {
             Save::Turn(TurnSave {
                 player: None,
                 side,
@@ -215,7 +215,7 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
         .then(parse_turn)
         .then_skip(char(' ').optional())
         .then(parse_part.optional())
-        .mapped(|(((side, player), turn), part)| {
+        .map(|(((side, player), turn), part)| {
             Save::Turn(TurnSave {
                 player: Some(player),
                 side,
@@ -233,7 +233,7 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
         .then(parse_player)
         .then_skip(char(' ').optional())
         .then(parse_part.optional())
-        .mapped(|(((side, turn), player), part)| {
+        .map(|(((side, turn), player), part)| {
             Save::Turn(TurnSave {
                 player: Some(player),
                 side,
@@ -247,7 +247,7 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
     let side_turn = parse_side
         .then_skip(char(' ').optional())
         .then(parse_turn)
-        .mapped(|(side, turn)| {
+        .map(|(side, turn)| {
             Save::Turn(TurnSave {
                 player: None,
                 side,
