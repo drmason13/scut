@@ -119,11 +119,16 @@ impl Uploader {
 
         // confirm autosave as next turn save
         if let Some(ref mut save) = self.next_save {
-            save.confirmed =
-                get_confirmation(format!("Do you want to upload autosave as '{save}'?").as_str())
-                    .into_report()
-                    .change_context(UploadError::ConfirmationFailed)?
-        };
+            if found_team_save || force {
+                save.confirmed = get_confirmation(
+                    format!("Do you want to upload autosave as '{save}'?").as_str(),
+                )
+                .into_report()
+                .change_context(UploadError::ConfirmationFailed)?
+            } else {
+                println!("Warning: Autosave will not be uploaded because your teammate's save is missing.\nOverride this by using --force.")
+            }
+        }
 
         // upload saves
         for save in self.your_saves.iter_mut() {
@@ -142,7 +147,7 @@ impl Uploader {
                     autosave_uploaded = true;
                 }
             }
-        };
+        }
 
         Ok(autosave_uploaded)
     }
