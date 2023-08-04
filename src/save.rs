@@ -193,9 +193,9 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
     // Side Start Turn
     // "Axis[ ]start 123";
     let side_start_turn = parse_side
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then_skip(token("start").any_case())
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_turn)
         .map(|(side, turn)| {
             Save::Turn(TurnSave {
@@ -209,11 +209,11 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Player[ ]Turn
     // "Axis DM 123";
     let side_player_turn = parse_side
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_player)
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_turn)
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_part.optional())
         .map(|(((side, player), turn), part)| {
             Save::Turn(TurnSave {
@@ -227,11 +227,11 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Turn[ ]Player
     // "Axis 123 DM";
     let side_turn_player = parse_side
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_turn)
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_player)
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_part.optional())
         .map(|(((side, turn), player), part)| {
             Save::Turn(TurnSave {
@@ -245,7 +245,7 @@ fn parse_turnsave(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Turn
     // "Axis 123";
     let side_turn = parse_side
-        .then_skip(char(' ').optional())
+        .then_skip(char(' ').many(0..))
         .then(parse_turn)
         .map(|(side, turn)| {
             Save::Turn(TurnSave {
@@ -307,6 +307,36 @@ mod test {
         let actual: Save = save.parse().expect("should parse");
         let expected = Save::Turn(TurnSave {
             player: None,
+            turn: 123,
+            side: Side::Axis,
+            part: None,
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Axis  123 DM";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
+            turn: 123,
+            side: Side::Axis,
+            part: None,
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Axis 123  DM";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
+            turn: 123,
+            side: Side::Axis,
+            part: None,
+        });
+        assert_eq!(actual, expected);
+
+        let save = "Axis    123    DM";
+        let actual: Save = save.parse().expect("should parse");
+        let expected = Save::Turn(TurnSave {
+            player: Some("DM".into()),
             turn: 123,
             side: Side::Axis,
             part: None,
