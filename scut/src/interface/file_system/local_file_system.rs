@@ -11,6 +11,11 @@ use super::FileSystem;
 pub struct LocalFileSystem;
 
 impl FileSystem for LocalFileSystem {
+    fn file_exists(&self, path: &Path) -> anyhow::Result<bool> {
+        Ok(path.try_exists()?)
+    }
+
+    // TODO: only search for files in folder - rename method
     fn paths_in_folder(&self, folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
         let files = fs::read_dir(folder)
             .with_context(|| format!("failed to list files in {}", folder.display()))?;

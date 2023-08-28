@@ -6,6 +6,8 @@ use std::{
 pub mod local_file_system;
 
 pub trait FileSystem {
+    fn file_exists(&self, path: &Path) -> anyhow::Result<bool>;
+
     fn paths_in_folder(&self, folder: &Path) -> anyhow::Result<Vec<PathBuf>>;
 
     fn write_string_to_file(&self, content: &str, path: &Path) -> anyhow::Result<()>;
