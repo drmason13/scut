@@ -26,10 +26,16 @@ pub(crate) fn ready_storage(
             .suggest("Use `scut config edit` to review and update your config")?,
         Box::new(compression),
     );
-    let local_storage = GameSavesFolder::new(Folder::new(
-        &config.saves,
-        Box::new(LocalFileSystem::new()),
-    )?);
+    let local_storage = GameSavesFolder::new(
+        Folder::new(&config.saves, Box::new(LocalFileSystem::new()))
+            .with_context(|| {
+                format!(
+                    "failed to load game saves folder with path '{}'",
+                    config.saves.display()
+                )
+            })
+            .suggest("Use `scut config edit` to review and update your config")?,
+    );
 
     Ok((Box::new(local_storage), Box::new(remote_storage)))
 }

@@ -65,30 +65,33 @@ fn main() -> Result<(), Report> {
 
 pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
     let (mut config, config_service) = config::ready_config(cli.config)?;
-    let (local_storage, remote_storage) = storage::ready_storage(&config)?;
     let command_user_interaction = Box::new(Terminal::new());
 
     match cli.command {
         Command::Config(cmd) => cmd
             .run(config, config_service, command_user_interaction)
             .context("Something went wrong using the config"),
-        Command::Download(cmd) => cmd
-            .run(
+        Command::Download(cmd) => {
+            let (local_storage, remote_storage) = storage::ready_storage(&config)?;
+            cmd.run(
                 &mut config,
                 config_service,
                 local_storage,
                 remote_storage,
                 command_user_interaction,
             )
-            .context("Something went wrong downloading"),
-        Command::Upload(cmd) => cmd
-            .run(
+            .context("Something went wrong downloading")
+        }
+        Command::Upload(cmd) => {
+            let (local_storage, remote_storage) = storage::ready_storage(&config)?;
+            cmd.run(
                 &config,
                 config_service,
                 local_storage,
                 remote_storage,
                 command_user_interaction,
             )
-            .context("Something went wrong uploading"),
+            .context("Something went wrong uploading")
+        }
     }
 }

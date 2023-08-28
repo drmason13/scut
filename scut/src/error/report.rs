@@ -33,6 +33,7 @@ impl fmt::Display for Report {
         self.0.fmt(f)
     }
 }
+
 /// Pretty print an anyhow::Error that may contain errors with suggestions via [`ErrorWithSuggestion`].
 ///
 /// Intended for use by [`Report`].
