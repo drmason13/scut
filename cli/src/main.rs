@@ -40,8 +40,9 @@ use clap::{Parser, ValueHint};
 use scut_core::{error::Report, interface::Terminal};
 
 mod command;
-pub mod config;
+pub(crate) mod config;
 mod error;
+mod storage;
 
 use command::Command;
 
@@ -64,6 +65,7 @@ fn main() -> Result<(), Report> {
 
 pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
     let (mut config, config_service) = config::ready_config(cli.config)?;
+    let (local_storage, remote_storage) = storage::ready_storage(&config)?;
     let command_user_interaction = Box::new(Terminal::new());
 
     match cli.command {
@@ -71,10 +73,22 @@ pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
             .run(config, config_service, command_user_interaction)
             .context("Something went wrong using the config"),
         Command::Download(cmd) => cmd
-            .run(&mut config, config_service, command_user_interaction)
+            .run(
+                &mut config,
+                config_service,
+                local_storage,
+                remote_storage,
+                command_user_interaction,
+            )
             .context("Something went wrong downloading"),
         Command::Upload(cmd) => cmd
-            .run(&config, config_service, command_user_interaction)
+            .run(
+                &config,
+                config_service,
+                local_storage,
+                remote_storage,
+                command_user_interaction,
+            )
             .context("Something went wrong uploading"),
     }
 }

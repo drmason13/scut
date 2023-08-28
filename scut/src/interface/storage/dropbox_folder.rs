@@ -14,11 +14,11 @@ pub struct DropboxFolder {
 }
 
 impl DropboxFolder {
-    pub fn new(folder: Folder, compression: Box<dyn Compression>) -> anyhow::Result<Self> {
-        Ok(DropboxFolder {
+    pub fn new(folder: Folder, compression: Box<dyn Compression>) -> Self {
+        DropboxFolder {
             folder,
             compression,
-        })
+        }
     }
 }
 
@@ -31,11 +31,11 @@ impl DropboxFolder {
     ) -> anyhow::Result<()> {
         if attempt >= 1 {
             return Err(anyhow::anyhow!(
-                "{save} not found in your dropbox folder {}",
+                "{save} not found in your dropbox folder '{}'",
                 self.folder.location.display()
             ))
             .suggest("Is your Dropbox client synced?")
-            .suggest("Have your friends uploaded their turn to Dropbox?");
+            .suggest("Have your friends uploaded their turn to Dropbox?")?;
         }
 
         if let Some(src) = self.folder.locate_save(save)? {

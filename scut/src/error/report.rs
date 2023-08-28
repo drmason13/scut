@@ -39,18 +39,19 @@ impl fmt::Display for Report {
 fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let mut suggestions = Vec::new();
 
-    write!(f, "Error: {}\n\n", error)?;
+    writeln!(f, "{error}")?;
 
-    let mut error_chain = error.chain().skip(1);
-
-    if let Some(cause) = error_chain.next() {
-        writeln!(f, "Caused by:\n\t* {cause}")?;
+    let mut error_chain = error.chain().skip(1).peekable();
+    if error_chain.peek().is_some() {
+        writeln!(f, "\nCaused by:")?;
+    }
+    for cause in error_chain {
         report_cause(cause, f, &mut suggestions)?;
-        for cause in error_chain {
-            report_cause(cause, f, &mut suggestions)?;
-        }
     }
 
+    if !suggestions.is_empty() {
+        writeln!(f, "\n")?;
+    }
     for suggestion in suggestions {
         report_suggestion(suggestion, f)?;
     }
@@ -70,14 +71,14 @@ fn report_cause<'a>(
     {
         suggestions.push(suggestion);
     }
-    writeln!(f, "\t* {cause}")
+    writeln!(f, "  - {cause}")
 }
 
 fn report_suggestion(suggestion: &'static str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     for suggestion in suggestion.lines() {
         writeln!(f, "> {suggestion}")?;
     }
-    writeln!(f)
+    Ok(())
 }
 
 impl From<anyhow::Error> for Report {

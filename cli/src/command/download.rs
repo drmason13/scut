@@ -3,7 +3,7 @@ use clap::Args;
 #[allow(unused_imports)]
 use anyhow::Context;
 use scut_core::{
-    interface::{config::ConfigService, UserInteraction},
+    interface::{config::ConfigService, LocalStorage, RemoteStorage, UserInteraction},
     Config, Save, Side,
 };
 
@@ -24,6 +24,8 @@ impl DownloadCmd {
         self,
         config: &mut Config,
         config_service: Box<dyn ConfigService>,
+        local_storage: Box<dyn LocalStorage>,
+        remote_storage: Box<dyn RemoteStorage>,
         mut ui: Box<dyn UserInteraction>,
     ) -> anyhow::Result<()> {
         let turn = if let Some(turn_override) = self.turn {

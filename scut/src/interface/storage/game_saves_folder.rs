@@ -27,7 +27,7 @@ impl GameSavesFolder {
                 "failed to find {save} in your game saves folder {}",
                 self.folder.location.display()
             ))
-            .suggest("Did you remember to save the game?");
+            .suggest("Did you remember to save the game?")?;
         }
 
         let save_path = match save.borrow() {

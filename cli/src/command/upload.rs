@@ -2,7 +2,7 @@ use anyhow::Context;
 use clap::Args;
 
 use scut_core::interface::config::ConfigService;
-use scut_core::interface::UserInteraction;
+use scut_core::interface::{LocalStorage, RemoteStorage, UserInteraction};
 use scut_core::{Config, Key, Setting};
 
 /// Contains the arguments of the upload command.
@@ -31,6 +31,8 @@ impl UploadCmd {
         self,
         config: &Config,
         config_service: Box<dyn ConfigService>,
+        local_storage: Box<dyn LocalStorage>,
+        remote_storage: Box<dyn RemoteStorage>,
         mut ui: Box<dyn UserInteraction>,
     ) -> anyhow::Result<()> {
         // TODO: Check that teammate save is unzipped in saves folder

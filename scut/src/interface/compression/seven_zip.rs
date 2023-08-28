@@ -15,8 +15,10 @@ pub struct SevenZipCompression {
 }
 
 impl SevenZipCompression {
-    pub fn new(seven_zip_path: PathBuf) -> Self {
-        SevenZipCompression { seven_zip_path }
+    pub fn new(seven_zip_path: &Path) -> Self {
+        SevenZipCompression {
+            seven_zip_path: seven_zip_path.to_path_buf(),
+        }
     }
 }
 
@@ -34,11 +36,17 @@ impl Compression for SevenZipCompression {
         output_error(&output)
             .with_context(|| {
                 format!(
-                    "{:?} returned unsuccessful status code: {}",
+                    "`{:?}` returned unsuccessful status code: '{}'",
                     command, output.status
                 )
             })
-            .with_context(|| format!("failed to compress {} to {}", from.display(), to.display()))
+            .with_context(|| {
+                format!(
+                    "failed to compress '{}' to '{}'",
+                    from.display(),
+                    to.display()
+                )
+            })
     }
 
     fn decompress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
@@ -55,13 +63,13 @@ impl Compression for SevenZipCompression {
         output_error(&output)
             .with_context(|| {
                 format!(
-                    "{:?} returned unsuccessful status code: {}",
+                    "`{:?}` returned unsuccessful status code: '{}'",
                     command, output.status
                 )
             })
             .with_context(|| {
                 format!(
-                    "failed to decompress {} to {}",
+                    "failed to decompress '{}' to '{}'",
                     from.display(),
                     to.display()
                 )

@@ -1,5 +1,3 @@
-//! Instantiate the interfaces and their dependencies for a Config and ConfigService
-
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -22,10 +20,11 @@ fn get_config(config_service: &mut dyn ConfigService) -> anyhow::Result<Config> 
     }
 }
 
+/// Instantiate the interfaces and their dependencies for a Config and ConfigService
 pub(crate) fn ready_config(
     config_option: Option<PathBuf>,
 ) -> anyhow::Result<(Config, Box<dyn ConfigService>)> {
-    let file_system = Box::new(LocalFileSystem);
+    let file_system = Box::new(LocalFileSystem::new());
     let user_interaction = Box::new(Terminal::new());
 
     let config_location = config_option.unwrap_or(TomlFileConfig::default_location()?);

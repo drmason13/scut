@@ -8,21 +8,20 @@ pub struct ErrorWithSuggestion {
 
 pub trait ErrorSuggestions<T> {
     /// Add a suggestion to an [`Error`](std::error::Error) type, returning an [`anyhow::Error`] containing an [`ErrorWithSuggestion`]
-    fn suggest(self, suggestion: &'static str) -> Result<T, anyhow::Error>;
+    fn suggest(self, suggestion: &'static str) -> Result<T, ErrorWithSuggestion>;
 }
 
 impl<T, E> ErrorSuggestions<T> for Result<T, E>
 where
     anyhow::Error: From<E>,
-    anyhow::Error: From<ErrorWithSuggestion>,
 {
-    fn suggest(self, suggestion: &'static str) -> Result<T, anyhow::Error> {
+    fn suggest(self, suggestion: &'static str) -> Result<T, ErrorWithSuggestion> {
         match self {
             Ok(ok) => Ok(ok),
-            Err(err) => Err(anyhow::Error::from(ErrorWithSuggestion {
+            Err(err) => Err(ErrorWithSuggestion {
                 error: anyhow::Error::from(err),
                 suggestion,
-            })),
+            }),
         }
     }
 }
@@ -45,4 +44,8 @@ impl fmt::Debug for ErrorWithSuggestion {
 }
 
 /// Implement [`Error`](std::error::Error) in order to support conversion into [`anyhow::Error`]
-impl Error for ErrorWithSuggestion {}
+impl Error for ErrorWithSuggestion {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.error.source()
+    }
+}
