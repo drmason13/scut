@@ -7,7 +7,7 @@ pub struct ErrorWithSuggestion {
 }
 
 pub trait ErrorSuggestions<T> {
-    /// Add a suggestion to an [`Error`](std::error::Error) type, returning an [`anyhow::Error`] containing an [`ErrorWithSuggestion`]
+    /// Add a suggestion to an [`Error`](std::error::Error) type, creating an [`anyhow::Error`] from it inside the [`ErrorWithSuggestion`]
     fn suggest(self, suggestion: &'static str) -> Result<T, ErrorWithSuggestion>;
 }
 
@@ -27,19 +27,17 @@ where
 }
 
 /// Our Display implementation forwards to the wrapped [`anyhow::Error`], ignoring the suggestion
-///
-/// The suggestion is printed in the verbose Debug implentation
 impl fmt::Display for ErrorWithSuggestion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.error.fmt(f)
     }
 }
 
+/// The suggestion is appended for Debug format
 impl fmt::Debug for ErrorWithSuggestion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.error.fmt(f)?;
-        write!(f, "\n\n")?;
-        writeln!(f, "> {}", self.suggestion)
+        write!(f, " > {}", self.suggestion)
     }
 }
 

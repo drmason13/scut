@@ -39,6 +39,13 @@ impl fmt::Display for Report {
 fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let mut suggestions = Vec::new();
 
+    if let Some(ErrorWithSuggestion {
+        error: _,
+        suggestion,
+    }) = error.downcast_ref::<ErrorWithSuggestion>()
+    {
+        suggestions.push(*suggestion);
+    }
     writeln!(f, "{error}")?;
 
     let mut error_chain = error.chain().skip(1).peekable();
@@ -69,7 +76,7 @@ fn report_cause<'a>(
         suggestion,
     }) = cause.downcast_ref::<ErrorWithSuggestion>()
     {
-        suggestions.push(suggestion);
+        suggestions.push(*suggestion);
     }
     writeln!(f, "  - {cause}")
 }

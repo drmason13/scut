@@ -17,13 +17,13 @@ pub(crate) fn ready_storage(
 
     let remote_storage = DropboxFolder::new(
         Folder::new(&config.dropbox, Box::new(LocalFileSystem::new()))
-            .suggest("Use `scut config edit` to review and update your config")
             .with_context(|| {
                 format!(
                     "failed to load dropbox folder with path '{}'",
                     config.dropbox.display()
                 )
-            })?,
+            })
+            .suggest("Use `scut config edit` to review and update your config")?,
         Box::new(compression),
     );
     let local_storage = GameSavesFolder::new(Folder::new(
