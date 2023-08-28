@@ -1,0 +1,102 @@
+<Axis DM>
+Local:
+autosave = Allies 7, true
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DG 7 A
+Axis DG 7 B
+Axis DG 7
+
+Remote:
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DG 7 A
+Axis DG 7 B
+Axis DG 7
+
+Downloads:
+
+Uploads:
+
+<Axis DM>
+Local:
+autosave = Allies 7, false
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DG 7 A
+Axis DG 7 B
+Axis DG 7
+
+Remote:
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DG 7 A
+Axis DG 7 B
+Axis DG 7
+Allies 7
+
+Downloads:
+
+Uploads:
+
+<Axis DM>
+Local:
+autosave = Allies 1, true
+Axis DM 1
+Axis DG 1
+
+Remote:
+Axis DM 1
+Axis DG 1
+
+Downloads:
+
+Uploads:
+
+<Axis DM>
+Local:
+autosave = Allies 2, true
+Axis DM 1
+Axis DG 1
+Axis 2
+Axis DM 2
+Axis DG 2
+
+Remote:
+Allies 1
+Allies GM 1
+Allies TG 1
+Axis DM 1
+Axis DG 1
+Axis 2
+Axis DM 2
+Axis DG 2
+
+Downloads:
+
+Uploads:
+
