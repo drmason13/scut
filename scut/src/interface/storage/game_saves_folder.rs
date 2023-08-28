@@ -5,7 +5,7 @@ use anyhow::Context;
 use crate::error::ErrorSuggestions;
 use crate::interface::{Folder, LocalStorage};
 use crate::save::SaveOrAutosave;
-use crate::Save;
+use crate::{Save, Side};
 
 /// This implementation is used to store the saves in your Strategic Command save game folder where they can be loaded by the game.
 pub struct GameSavesFolder {
@@ -39,7 +39,7 @@ impl GameSavesFolder {
             Ok(Some(path.to_path_buf()))
         } else {
             // Retry after loading contents from disk again
-            self.folder.refresh_contents().with_context(|| {
+            self.folder.refresh_saves().with_context(|| {
                 format!(
                     "failed to find {save} in your game saves folder {}",
                     self.folder.location.display()
@@ -58,5 +58,9 @@ impl LocalStorage for GameSavesFolder {
 
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
         self.attempt_locate_save(0, SaveOrAutosave::autosave())
+    }
+
+    fn get_latest_friendly_turn(&mut self, side: Side) -> anyhow::Result<Option<u32>> {
+        self.folder.get_latest_friendly_turn(side)
     }
 }

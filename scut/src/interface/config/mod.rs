@@ -1,17 +1,23 @@
 pub mod toml_file;
-pub use toml_file::TomlFileConfig;
-
-use std::path::PathBuf;
 
 use crate::Config;
 
+/// Config persistence is how the [`Config`] is saved and loaded between usages of scut.
 pub trait ConfigPersistence {
-    /// Config persistence is how the [`Config`] is saved and loaded between usages of scut.
+    /// Save the config, storing it for future retrieval
     fn save(&mut self, config: &Config) -> anyhow::Result<()>;
 
+    /// Load the stored config and return it, if it exists
     fn load(&mut self) -> anyhow::Result<Option<Config>>;
 
-    fn default_location(&self) -> anyhow::Result<PathBuf>;
+    /// Return the string represention of the given config
+    fn serialize(&self, config: &Config) -> anyhow::Result<String>;
+
+    /// Return the Config struct represented by the given string
+    fn deserialize(&self, s: &str) -> anyhow::Result<Config>;
+
+    /// Return a string describing the location of the stored config
+    fn location(&self) -> anyhow::Result<String>;
 }
 
 /// Config init is how the [`Config`] is created for the first time.

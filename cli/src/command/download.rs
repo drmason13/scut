@@ -1,11 +1,11 @@
 use clap::Args;
 
-use crate::io_utils::{get_confirmation, wait_for_user_before_close};
-
 #[allow(unused_imports)]
 use anyhow::Context;
-use scut_core::interface::ConfigPersistence;
-use scut_core::{Save, Side};
+use scut_core::{
+    interface::{config::ConfigService, UserInteraction},
+    Config, Save, Side,
+};
 
 #[derive(Debug, Args)]
 pub(crate) struct DownloadCmd {
@@ -20,9 +20,12 @@ pub(crate) struct DownloadCmd {
 
 #[allow(unreachable_code, unused)]
 impl DownloadCmd {
-    pub(crate) fn run(self, config: &mut dyn ConfigPersistence) -> anyhow::Result<()> {
-        let config = config.load()?;
-
+    pub(crate) fn run(
+        self,
+        config: &mut Config,
+        config_service: Box<dyn ConfigService>,
+        mut ui: Box<dyn UserInteraction>,
+    ) -> anyhow::Result<()> {
         let turn = if let Some(turn_override) = self.turn {
             turn_override
         } else {
@@ -39,12 +42,12 @@ impl DownloadCmd {
 
         todo!("download");
 
-        if get_confirmation("Is that OK?") {
-            todo!("download");
+        if ui.confirm("Is that OK?", Some(true)) {
+            anyhow::bail!("I put this error here to see what would happen");
 
-            wait_for_user_before_close("Done");
+            ui.wait_for_user_before_close("Done");
         } else {
-            wait_for_user_before_close("User cancelled. Stopping.");
+            ui.wait_for_user_before_close("User cancelled. Stopping.");
         }
 
         Ok(())

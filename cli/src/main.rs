@@ -37,14 +37,13 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::{Parser, ValueHint};
-use scut_core::error::Report;
+use scut_core::{error::Report, interface::Terminal};
 
 mod command;
+pub mod config;
 mod error;
-mod io_utils;
 
 use command::Command;
-use scut_core::Config;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -64,16 +63,18 @@ fn main() -> Result<(), Report> {
 }
 
 pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
-    let location = todo!();
-    let config = todo!();
-    todo!()
-    // match cli.command {
-    //     Command::Config(cmd) => cmd
-    //         .run(config)
-    //         .context("Something went wrong using the config"),
-    //     Command::Download(cmd) => cmd.run(&config).context("Something went wrong downloading"),
-    //     Command::Upload(cmd) => cmd
-    //         .run(&mut config)
-    //         .context("Something went wrong uploading"),
-    // }
+    let (mut config, config_service) = config::ready_config(cli.config)?;
+    let command_user_interaction = Box::new(Terminal::new());
+
+    match cli.command {
+        Command::Config(cmd) => cmd
+            .run(config, config_service, command_user_interaction)
+            .context("Something went wrong using the config"),
+        Command::Download(cmd) => cmd
+            .run(&mut config, config_service, command_user_interaction)
+            .context("Something went wrong downloading"),
+        Command::Upload(cmd) => cmd
+            .run(&config, config_service, command_user_interaction)
+            .context("Something went wrong uploading"),
+    }
 }

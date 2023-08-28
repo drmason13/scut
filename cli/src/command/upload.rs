@@ -1,10 +1,9 @@
 use anyhow::Context;
 use clap::Args;
 
-use scut_core::interface::ConfigPersistence;
-use scut_core::{Key, Setting};
-
-use crate::io_utils::wait_for_user_before_close;
+use scut_core::interface::config::ConfigService;
+use scut_core::interface::UserInteraction;
+use scut_core::{Config, Key, Setting};
 
 /// Contains the arguments of the upload command.
 ///
@@ -28,8 +27,12 @@ pub(crate) struct UploadCmd {
 
 #[allow(unreachable_code, unused)]
 impl UploadCmd {
-    pub(crate) fn run(self, config: &mut dyn ConfigPersistence) -> anyhow::Result<()> {
-        let config = config.load()?;
+    pub(crate) fn run(
+        self,
+        config: &Config,
+        config_service: Box<dyn ConfigService>,
+        mut ui: Box<dyn UserInteraction>,
+    ) -> anyhow::Result<()> {
         // TODO: Check that teammate save is unzipped in saves folder
         // if it isn't, then the assumption is that you are playing the turn first and shouldn't upload a next_turn_start save yet!
 
@@ -40,12 +43,11 @@ impl UploadCmd {
         };
 
         let your_saves: Vec<()> = Vec::new();
-        todo!();
 
         if your_saves.is_empty() {
-            println!("Did not find your save for this turn.");
-            println!("Create a save before clicking end turn so your teammate can see what you did during your turn.");
-            wait_for_user_before_close("Save missing. Nothing has been uploaded. Stopping.");
+            ui.message("Did not find your save for this turn.");
+            ui.message("Create a save before clicking end turn so your teammate can see what you did during your turn.");
+            ui.wait_for_user_before_close("Save missing. Nothing has been uploaded. Stopping.");
             return Ok(());
         };
 
@@ -54,7 +56,7 @@ impl UploadCmd {
         todo!("");
 
         if !found_team_save {
-            println!("Did not find a save from your teammate for this turn.");
+            ui.message("Did not find a save from your teammate for this turn.");
         }
 
         // upload saves
@@ -71,7 +73,7 @@ impl UploadCmd {
             format!("Ok. It is still turn {turn}")
         };
 
-        wait_for_user_before_close(prompt.as_str());
+        ui.wait_for_user_before_close(prompt.as_str());
 
         Ok(())
     }

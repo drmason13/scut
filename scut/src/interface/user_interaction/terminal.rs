@@ -11,7 +11,7 @@ pub struct Terminal {
 
 impl Terminal {
     /// Creates a new [`Terminal`].
-    fn new() -> Self {
+    pub fn new() -> Self {
         Terminal {
             buffer: String::new(),
         }

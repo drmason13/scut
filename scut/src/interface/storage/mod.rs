@@ -8,7 +8,7 @@ pub mod game_saves_folder;
 
 use std::path::{Path, PathBuf};
 
-use crate::Save;
+use crate::{Save, Side};
 
 /// Local storage is where the saved Games are ready to be loaded by Strategic Command and played.
 ///
@@ -22,6 +22,8 @@ pub trait LocalStorage {
     /// Autosaves are created by Strategic Command when ending the turn.
     /// They are uploaded by scut as the start of turn save for the next team.
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>>;
+
+    fn get_latest_friendly_turn(&mut self, side: Side) -> anyhow::Result<Option<u32>>;
 }
 
 /// Remote storage is where the saved Games are sent to be shared with other players.
@@ -37,6 +39,8 @@ pub trait RemoteStorage {
     ///
     /// The game save file could be compressed when moved to remote storage.
     fn upload(&mut self, save: &Save, local_path: &Path) -> anyhow::Result<()>;
+
+    fn get_latest_enemy_turn(&mut self, side: Side) -> anyhow::Result<Option<u32>>;
 
     /// Return the location of the remote storage as a string suitable for display to the end user
     fn location(&self) -> String;

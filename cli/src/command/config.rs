@@ -1,9 +1,8 @@
 use anyhow::Context;
 use clap::Subcommand;
 
-use crate::io_utils::{get_confirmation, wait_for_user_before_close};
-
-use scut_core::interface::ConfigPersistence;
+use scut_core::interface::config::ConfigService;
+use scut_core::interface::UserInteraction;
 use scut_core::{Config, Key, Setting};
 
 /// Read or modify the current configuration file
@@ -35,20 +34,26 @@ pub(crate) enum ConfigCmd {
 }
 
 impl ConfigCmd {
-    pub(crate) fn run(self, mut config: Box<dyn ConfigPersistence>) -> anyhow::Result<()> {
+    pub(crate) fn run(
+        self,
+        config: Config,
+        mut config_service: Box<dyn ConfigService>,
+        mut ui: Box<dyn UserInteraction>,
+    ) -> anyhow::Result<()> {
         match self {
             Self::Show => {
-                println!("Config is located at {}", config.display_location());
-                println!("{}", config.display());
+                ui.message(&format!(
+                    "Config is located at {}",
+                    config_service.location()?
+                ));
+                ui.message(&config_service.serialize(&config)?);
             }
             Self::Get { key } => {
-                let config = config.load()?;
                 let value = config.get(key);
                 println!("{value}");
             }
             Self::Set { key, value } => {
                 let value = normalise(value);
-                let mut config = config.load()?;
                 let value = Setting::new(key, value)
                     .with_context(|| format!("failed to set config.{key}"))?;
                 config.set(key, value)?;
@@ -57,22 +62,24 @@ impl ConfigCmd {
             }
             Self::Edit => {
                 let new_string = loop {
-                    match edit::edit(config.display().to_string()) {
+                    match edit::edit(config_service.serialize(&config)?) {
                         Ok(new_string) => break new_string,
                         Err(io_err) if io_err.kind() == std::io::ErrorKind::InvalidData => {
                             println!("The edited config was not valid UTF-8");
                             println!("Your changes have not been saved.");
 
-                            if get_confirmation("Would you like to try and edit the config again?")
-                            {
+                            if ui.confirm(
+                                "Would you like to try and edit the config again?",
+                                Some(true),
+                            ) {
                                 continue;
                             } else {
-                                wait_for_user_before_close("Config was not updated. Exiting.");
+                                ui.wait_for_user_before_close("Config was not updated. Exiting.");
                             }
                         }
                         Err(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
-                            println!("Unable to find an editor to edit the config");
-                            wait_for_user_before_close("You can edit the config from the commandline using `scut config set KEY VALUE`");
+                            ui.message("Unable to find an editor to edit the config");
+                            ui.wait_for_user_before_close("You can edit the config from the commandline using `scut config set KEY VALUE`");
                             return Ok(());
                         }
                         Err(e) => {
@@ -82,17 +89,17 @@ impl ConfigCmd {
                 };
 
                 let new_config = loop {
-                    match config.deserialize(new_string.as_str()) {
+                    match config_service.deserialize(new_string.as_str()) {
                         Ok(config) => break config,
                         Err(e) => {
                             println!("Invalid config: {e}");
                             println!("Your changes have not been saved.");
 
-                            if get_confirmation("Would you like to try and edit the config again?")
+                            if ui.confirm("Would you like to try and edit the config again?", None)
                             {
                                 continue;
                             } else {
-                                wait_for_user_before_close(
+                                ui.wait_for_user_before_close(
                                     "User has abandoned editing the config. Exiting.",
                                 );
                                 return Ok(());
@@ -101,15 +108,15 @@ impl ConfigCmd {
                     }
                 };
 
-                config
-                    .save(new_config)
+                config_service
+                    .save(&new_config)
                     .context("failed to save changes to config")?;
 
                 println!("Config was updated successfully");
             }
         }
 
-        wait_for_user_before_close("");
+        ui.wait_for_user_before_close("");
         Ok(())
     }
 }

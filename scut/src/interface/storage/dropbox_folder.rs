@@ -3,6 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 
 use crate::interface::{Compression, Folder, RemoteStorage};
+use crate::Side;
 use crate::{error::ErrorSuggestions, Save};
 
 /// This implementation is used to store the saves in your dropbox folder where they can be shared with other players by Dropbox.
@@ -44,7 +45,7 @@ impl DropboxFolder {
         } else {
             // Retry after loading contents from disk again
             self.folder
-                .refresh_contents()
+                .refresh_saves()
                 .with_context(|| format!("failed to download {save}"))?;
             self.attempt_download(attempt + 1, save, local_path)
         }
@@ -65,5 +66,9 @@ impl RemoteStorage for DropboxFolder {
 
     fn location(&self) -> String {
         self.folder.location.display().to_string()
+    }
+
+    fn get_latest_enemy_turn(&mut self, side: Side) -> anyhow::Result<Option<u32>> {
+        self.folder.get_latest_friendly_turn(side)
     }
 }

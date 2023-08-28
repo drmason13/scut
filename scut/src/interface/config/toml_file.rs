@@ -29,6 +29,12 @@ impl TomlFileConfig {
         }
     }
 
+    pub fn default_location() -> anyhow::Result<PathBuf> {
+        dirs::config_dir()
+            .map(|p| p.join("scut").join("config.toml"))
+            .context("failed to find your system config folder")
+    }
+
     fn load_config_from_disk(&mut self) -> anyhow::Result<Option<Config>> {
         let result = self.file_system.read_file_to_string(&self.location);
         let toml_string = match result {
@@ -116,10 +122,21 @@ impl ConfigPersistence for TomlFileConfig {
             .context("failed to load config file")
     }
 
-    fn default_location(&self) -> anyhow::Result<PathBuf> {
-        dirs::config_dir()
-            .map(|p| p.join("scut").join("config.toml"))
-            .context("Unable to find your documents folder")
+    fn serialize(&self, config: &Config) -> anyhow::Result<String> {
+        toml::to_string_pretty(config).context("failed to save config file")
+    }
+
+    fn deserialize(&self, s: &str) -> anyhow::Result<Config> {
+        toml::from_str(s).context("failed to parse config file")
+    }
+
+    fn location(&self) -> anyhow::Result<String> {
+        Ok(self
+            .location
+            .as_path()
+            .as_os_str()
+            .to_string_lossy()
+            .to_string())
     }
 }
 
