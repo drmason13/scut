@@ -1,0 +1,14 @@
+[package]
+name = "scut_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+dirs = "5.0.1"
+dropbox-dir = "1.0.0"
+parsely = { path = "../../parsely" }
+serde = "1.0.188"
+toml = "0.7.6"

@@ -1,21 +1,5 @@
-[package]
-name = "scut"
-version = "0.2.2"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-dirs = "4.0.0"
-dropbox-dir = "1.0.0"
-edit = "0.1.4"
-either = "1.8.0"
-error-stack = { git = "https://github.com/hashintel/hash", features = ["pretty-print"] }
-serde = { version = "1.0.145", features = ["derive"] }
-thiserror = "1.0.36"
-toml = "0.5.9"
-parsely = { path = "../parsely" }
-clap = { version = "4.2.5", features = ["derive"] }
-
-[dev-dependencies]
-tempfile = "3.3.0"
+[workspace]
+members = [
+    "scut",
+    "cli",
+]

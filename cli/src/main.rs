@@ -35,21 +35,16 @@
 
 use std::path::PathBuf;
 
+use anyhow::Context;
 use clap::{Parser, ValueHint};
-use error::RuntimeError;
-use error_stack::{Report, ResultExt};
+use scut_core::error::Report;
 
 mod command;
-mod config;
 mod error;
 mod io_utils;
-mod save;
-mod side;
-#[cfg(test)]
-mod test;
 
 use command::Command;
-use config::Config;
+use scut_core::Config;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -62,27 +57,23 @@ pub(crate) struct Cli {
     pub(crate) config: Option<PathBuf>,
 }
 
-fn main() -> Result<(), Report<RuntimeError>> {
+fn main() -> Result<(), Report> {
     let cli = Cli::parse();
 
-    run(cli)
+    Ok(run(cli)?)
 }
 
-pub(crate) fn run(cli: Cli) -> Result<(), Report<RuntimeError>> {
-    let mut config = Config::read_config_file(cli.config).change_context(RuntimeError)?;
-
-    match cli.command {
-        Command::Config(cmd) => cmd
-            .run(config)
-            .change_context(RuntimeError)
-            .attach_printable("Something went wrong using the config"),
-        Command::Download(cmd) => cmd
-            .run(&config)
-            .change_context(RuntimeError)
-            .attach_printable("Something went wrong downloading"),
-        Command::Upload(cmd) => cmd
-            .run(&mut config)
-            .change_context(RuntimeError)
-            .attach_printable("Something went wrong uploading"),
-    }
+pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
+    let location = todo!();
+    let config = todo!();
+    todo!()
+    // match cli.command {
+    //     Command::Config(cmd) => cmd
+    //         .run(config)
+    //         .context("Something went wrong using the config"),
+    //     Command::Download(cmd) => cmd.run(&config).context("Something went wrong downloading"),
+    //     Command::Upload(cmd) => cmd
+    //         .run(&mut config)
+    //         .context("Something went wrong uploading"),
+    // }
 }

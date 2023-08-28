@@ -4,7 +4,6 @@ use self::{config::ConfigCmd, download::DownloadCmd, upload::UploadCmd};
 
 mod config;
 mod download;
-mod shared;
 mod upload;
 
 #[derive(Subcommand, Debug)]
