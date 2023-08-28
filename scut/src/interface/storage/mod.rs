@@ -6,7 +6,7 @@ pub mod dropbox_folder;
 pub mod folder;
 pub mod game_saves_folder;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::Save;
 
@@ -15,13 +15,13 @@ use crate::Save;
 /// The Local Storage interface defines where Saves should be located within the saved Games folder.
 pub trait LocalStorage {
     /// Returns the filepath containing the given save if it exists.
-    fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<&Path>>;
+    fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<PathBuf>>;
 
     /// Returns the location of the autosave if it exists.
     ///
     /// Autosaves are created by Strategic Command when ending the turn.
     /// They are uploaded by scut as the start of turn save for the next team.
-    fn locate_autosave(&mut self) -> anyhow::Result<Option<&Path>>;
+    fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>>;
 }
 
 /// Remote storage is where the saved Games are sent to be shared with other players.

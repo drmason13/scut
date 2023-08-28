@@ -1,29 +1,22 @@
 pub mod toml_file;
 pub use toml_file::TomlFileConfig;
 
-use std::fmt;
+use std::path::PathBuf;
 
 use crate::Config;
 
-use super::UserInteraction;
-
-/// Config persistence is how the [`Config`] is saved and loaded between usages of scut.
 pub trait ConfigPersistence {
-    fn save(&mut self, config: Config) -> anyhow::Result<()>;
+    /// Config persistence is how the [`Config`] is saved and loaded between usages of scut.
+    fn save(&mut self, config: &Config) -> anyhow::Result<()>;
 
-    fn load(&mut self) -> anyhow::Result<Config>;
+    fn load(&mut self) -> anyhow::Result<Option<Config>>;
 
-    fn deserialize(&self, s: &str) -> anyhow::Result<Config>;
-
-    fn display(&self) -> &dyn fmt::Display;
-
-    fn display_location(&self) -> &dyn fmt::Display;
+    fn default_location(&self) -> anyhow::Result<PathBuf>;
 }
 
 /// Config init is how the [`Config`] is created for the first time.
 pub trait ConfigInit {
-    fn create_default(&mut self) -> anyhow::Result<Config>;
-
-    fn create_init(&mut self, user_interaction: &mut dyn UserInteraction)
-        -> anyhow::Result<Config>;
+    fn init_config(&mut self) -> anyhow::Result<Config>;
 }
+
+pub trait ConfigService: ConfigPersistence + ConfigInit {}

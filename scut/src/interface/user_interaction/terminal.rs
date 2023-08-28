@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, str::FromStr};
+use std::io;
 
 use super::UserInteraction;
 

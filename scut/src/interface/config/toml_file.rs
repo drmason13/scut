@@ -1,19 +1,19 @@
-use std::{cell::RefCell, ops::DerefMut, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::Context;
 
 use crate::error::ErrorSuggestions;
+use crate::interface::file_system::is_not_found_err;
 use crate::interface::{
     user_interaction::query_and_parse, ConfigPersistence, FileSystem, UserInteraction,
 };
 
-use super::Config;
+use super::{Config, ConfigInit, ConfigService};
 
 pub struct TomlFileConfig {
     location: PathBuf,
     file_system: Box<dyn FileSystem>,
-    user_interaction: RefCell<Box<dyn UserInteraction>>,
-    config: Option<Config>,
+    user_interaction: Box<dyn UserInteraction>,
 }
 
 impl TomlFileConfig {
@@ -25,20 +25,49 @@ impl TomlFileConfig {
         TomlFileConfig {
             location,
             file_system,
-            user_interaction: RefCell::new(user_interaction),
-            config: None,
+            user_interaction,
         }
     }
 
-    fn load_config_from_disk(&mut self) -> anyhow::Result<&Config> {
-        let content = self.file_system.read_file_to_string(&self.location)?;
-        self.config.replace(self.deserialize(&content)?);
-        // unwrap: we just replaced our on the line config above
-        Ok(self.config.as_ref().unwrap())
+    fn load_config_from_disk(&mut self) -> anyhow::Result<Option<Config>> {
+        let result = self.file_system.read_file_to_string(&self.location);
+        let toml_string = match result {
+            Err(e) if is_not_found_err(&e) => return Ok(None),
+            Ok(ok) => ok,
+            Err(e) => return Err(e),
+        };
+
+        let config = toml::from_str(&toml_string)
+            .context("failed to parse config file")
+            .suggest("Your config file may be corrupted, move the config file and try again to create a new config file")?;
+
+        Ok(Some(config))
+    }
+
+    fn save_config_to_disk(&self, config: &Config) -> anyhow::Result<()> {
+        let content = toml::to_string_pretty(config).context("failed to save config file")?;
+
+        let mut attempt = 0;
+        loop {
+            match self
+                .file_system
+                .write_string_to_file(&content, &self.location)
+            {
+                Ok(ok) => return Ok(ok),
+                Err(e) if attempt > 1 => return Err(e).context("failed to save config file"),
+                _ => {
+                    attempt += 1;
+                    std::thread::sleep(Duration::from_millis(500));
+                    continue;
+                }
+            }
+        }
     }
 
     // TODO: abstract config defaults into an interface
-    fn create_default_config_file(&mut self) -> anyhow::Result<()> {
+    fn init_config(&mut self) -> anyhow::Result<Config> {
+        let ui = &mut *self.user_interaction;
+
         let dropbox_result = dropbox_dir::personal_dir();
 
         let dropbox = match dropbox_result {
@@ -55,97 +84,61 @@ impl TomlFileConfig {
             r#"Documents\My Games\Strategic Command WWII - World at War\Multiplayer\Hotseat"#,
         );
         let seven_zip_path = PathBuf::from(r#"C:\Program Files\7-Zip\"#);
-        let config_path = dirs::config_dir()
-            .context("Unable to find your documents folder")?
-            .join("scut")
-            .join("config.toml");
 
-        let side = query_and_parse(
-            "What side will you be playing as?",
-            &mut **self.user_interaction.borrow_mut(),
-        )
-        .ok_or_else(|| anyhow::anyhow!("no side provided"))
-        .suggest("Decide which side to play as and try again")?;
+        let side = query_and_parse("What side will you be playing as?", ui)
+            .ok_or_else(|| anyhow::anyhow!("no side provided"))
+            .suggest("Decide which side to play as and try again")?;
 
-        let player = self
-            .user_interaction
-            .borrow_mut()
-            .query("How do you want to sign your saves?");
+        let player = ui.query("How do you want to sign your saves?");
 
-        let turn = query_and_parse::<u32>(
-            "What turn are you on?",
-            &mut **self.user_interaction.borrow_mut(),
-        )
-        .ok_or_else(|| anyhow::anyhow!("no side provided"))
-        .suggest("Find out which turn you are on and try again")?;
+        let turn = query_and_parse::<u32>("What turn are you on?", ui)
+            .ok_or_else(|| anyhow::anyhow!("no side provided"))
+            .suggest("Find out which turn you are on and try again")?;
 
-        let default_config = Config {
+        Ok(Config {
             dropbox,
             saves,
             seven_zip_path,
             side,
             player,
             turn,
-        };
-
-        self.save(default_config)?;
-
-        self.user_interaction
-            .borrow_mut()
-            .message(&format!("New config written to {}", config_path.display()));
-        Ok(())
+        })
     }
 }
 
 impl ConfigPersistence for TomlFileConfig {
-    fn save(&mut self, config: Config) -> anyhow::Result<()> {
-        let config_toml = toml::to_string_pretty(&config).context("failed to save config file")?;
-
-        self.config.replace(config);
-
-        let mut attempt = 0;
-        loop {
-            match self
-                .file_system
-                .write_string_to_file(&config_toml, &self.location)
-            {
-                Ok(ok) => return Ok(ok),
-                Err(e) if attempt > 1 => return Err(e).context("failed to save config file"),
-                _ => {
-                    attempt += 1;
-                    std::thread::sleep(Duration::from_millis(500));
-                    continue;
-                }
-            }
-        }
+    fn save(&mut self, config: &Config) -> anyhow::Result<()> {
+        self.save_config_to_disk(config)
     }
 
-    fn load(&mut self) -> anyhow::Result<&Config> {
-        match self.config {
-            None => self
-                .load_config_from_disk()
-                .context("failed to load config file"),
-            Some(_) => Ok(self.config.as_ref().unwrap()),
-        }
+    fn load(&mut self) -> anyhow::Result<Option<Config>> {
+        self.load_config_from_disk()
+            .context("failed to load config file")
     }
 
-    fn deserialize(&self, toml_string: &str) -> anyhow::Result<Config> {
-        toml::from_str(toml_string).context("failed to parse config file")
-    }
-
-    fn display(&self) -> &dyn std::fmt::Display {
-        todo!()
-    }
-
-    fn display_location(&self) -> &dyn std::fmt::Display {
-        todo!()
-    }
-
-    fn create_default(&mut self) -> anyhow::Result<&Config> {
-        self.create_default_config_file()?;
-        self.load()
+    fn default_location(&self) -> anyhow::Result<PathBuf> {
+        dirs::config_dir()
+            .map(|p| p.join("scut").join("config.toml"))
+            .context("Unable to find your documents folder")
     }
 }
+
+impl ConfigInit for TomlFileConfig {
+    fn init_config(&mut self) -> anyhow::Result<Config> {
+        let config = self.init_config()?;
+        self.save(&config)?;
+
+        self.user_interaction.message(&format!(
+            "New config written to {}",
+            self.location.display()
+        ));
+
+        Ok(config)
+    }
+}
+
+impl ConfigService for TomlFileConfig {}
+
 /*
 fn ask_player_for_a_side() -> Side {
     loop {

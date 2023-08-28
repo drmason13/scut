@@ -1,3 +1,4 @@
+mod autosave;
 mod parse;
 mod side;
 
@@ -5,6 +6,7 @@ use std::{fmt, path::Path};
 
 use self::parse::ParseSaveError;
 
+pub use autosave::SaveOrAutosave;
 pub use side::Side;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
