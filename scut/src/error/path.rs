@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, fmt, io, path::PathBuf};
+use std::{fmt, io, path::PathBuf};
 
 /// Extension trait to embed path information into relevant io::Errors
 pub trait ErrorPaths<T> {

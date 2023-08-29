@@ -1,5 +1,6 @@
 pub mod compression;
 pub mod config;
+pub mod decision;
 pub mod file_system;
 pub mod storage;
 pub mod user_interaction;
