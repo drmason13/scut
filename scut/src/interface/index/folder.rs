@@ -8,7 +8,7 @@ use anyhow::Context;
 use crate::save::{path_to_save, Save};
 use crate::{interface::FileSystem, Side};
 
-/// Capable of storing saves in a Folder on the user's computer.
+/// Capable of storing and retrieving saves in a Folder on the user's computer.
 pub struct Folder {
     pub location: PathBuf,
     saves: HashMap<Save, PathBuf>,

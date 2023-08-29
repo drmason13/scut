@@ -1,4 +1,5 @@
-pub mod classic_decision;
+pub mod classic_prediction;
+pub mod patient_prediction;
 
 use crate::Save;
 
@@ -12,12 +13,12 @@ use crate::Save;
 /// An overriden turn (for example the user deliberately choose to download or upload a previous turn)
 /// should be used first to overrule any result of [`predict_turn`]
 ///
-/// [`predict_downloads`]: Decision::predict_downloads
-/// [`predict_uploads`]: Decision::predict_uploads
-/// [`predict_turn`]: Decision::predict_turn
-/// [`upload_autosave_as`]: Decision::upload_autosave_as
-pub trait Decision {
-    /// Ask the Decision implementation what turn they think it is, implementations may choose not to implement this.
+/// [`predict_downloads`]: Prediction::predict_downloads
+/// [`predict_uploads`]: Prediction::predict_uploads
+/// [`predict_turn`]: Prediction::predict_turn
+/// [`upload_autosave_as`]: Prediction::upload_autosave_as
+pub trait Prediction {
+    /// Ask the Prediction implementation what turn they think it is, implementations may choose not to implement this.
     fn predict_turn(&self) -> Option<u32> {
         None
     }
@@ -25,9 +26,9 @@ pub trait Decision {
     /// Return all the [`Save`]s that should be downloaded.
     fn predict_downloads(&self, turn: u32) -> Vec<Save>;
 
-    /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is hanlded via [`upload_autosave_as`](Decision::upload_autosave_as)
+    /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is hanlded via [`upload_autosave_as`](Prediction::upload_autosave_as)
     fn predict_uploads(&self, turn: u32) -> Vec<Save>;
 
     /// Return a [`Save`] the autosave should be uploaded as, and a boolean indicating whether it should be uploaded now.
-    fn upload_autosave_as(&self, turn: u32) -> (Save, bool);
+    fn predict_autosave(&self, turn: u32) -> (Save, bool);
 }
