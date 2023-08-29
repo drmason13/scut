@@ -7,7 +7,7 @@ pub mod game_saves_folder;
 
 use std::path::{Path, PathBuf};
 
-use crate::Save;
+use crate::{interface::Index, Save};
 
 /// Local storage is where the saved Games are ready to be loaded by Strategic Command and played.
 ///
@@ -21,6 +21,13 @@ pub trait LocalStorage {
     /// Autosaves are created by Strategic Command when ending the turn.
     /// They are uploaded by scut as the start of turn save for the next team.
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>>;
+
+    /// Return a reference to an implementation of Index that provides the [`search`] method used to find certain saves within this storage.
+    ///
+    /// Note that the result of a [`search`] only contains the saves that matched, and not their path within local storage.
+    ///
+    /// [`search`]: Index::search
+    fn index(&self) -> &dyn Index;
 }
 
 /// Remote storage is where the saved Games are sent to be shared with other players.
@@ -36,6 +43,13 @@ pub trait RemoteStorage {
     ///
     /// The game save file could be compressed when moved to remote storage.
     fn upload(&mut self, save: &Save, local_path: &Path) -> anyhow::Result<()>;
+
+    /// Return a reference to an implementation of Index that provides the [`search`] method used to find certain saves within this storage.
+    ///
+    /// Note that the result of a [`search`] only contains the saves that matched, and not their location within remote storage.
+    ///
+    /// [`search`]: Index::search
+    fn index(&self) -> &dyn Index;
 }
 
 // TODO: can a client use this interface to perform parallel uploads and/or downloads or is some kind of extension interface required?

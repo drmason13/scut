@@ -59,4 +59,8 @@ impl LocalStorage for GameSavesFolder {
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
         self.attempt_locate_save(0, SaveOrAutosave::autosave())
     }
+
+    fn index(&self) -> &dyn crate::interface::Index {
+        &self.folder
+    }
 }

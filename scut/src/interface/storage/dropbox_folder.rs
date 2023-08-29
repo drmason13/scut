@@ -62,4 +62,8 @@ impl RemoteStorage for DropboxFolder {
             .compress(local_path, &path)
             .with_context(|| format!("failed to upload {save}"))
     }
+
+    fn index(&self) -> &dyn crate::interface::Index {
+        &self.folder
+    }
 }

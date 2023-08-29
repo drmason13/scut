@@ -8,6 +8,8 @@ use anyhow::Context;
 use crate::save::{path_to_save, Save};
 use crate::{interface::FileSystem, Side};
 
+use super::{Index, Query, TurnQuery};
+
 /// Capable of storing and retrieving saves in a Folder on the user's computer.
 pub struct Folder {
     pub location: PathBuf,
@@ -79,14 +81,43 @@ impl Folder {
         Ok(())
     }
 
-    pub fn get_latest_friendly_turn(&mut self, side: Side) -> anyhow::Result<Option<u32>> {
-        self.refresh_saves()?;
-
+    pub fn get_latest_save(&self, side: Side) -> anyhow::Result<Option<Save>> {
         Ok(self
             .saves
             .keys()
             .filter(|save| save.side == side)
-            .map(|save| save.turn)
-            .max())
+            .cloned()
+            .max_by_key(|save| save.turn))
+    }
+
+    pub fn get_earliest_save(&self, side: Side) -> anyhow::Result<Option<Save>> {
+        Ok(self
+            .saves
+            .keys()
+            .filter(|save| save.side == side)
+            .cloned()
+            .min_by_key(|save| save.turn))
+    }
+}
+
+impl Index for Folder {
+    fn search(&self, query: Query) -> anyhow::Result<Vec<Save>> {
+        match query {
+            Query {
+                turn: Some(TurnQuery::Single(turn)),
+                side,
+                player: None,
+                part: None,
+            } => todo!(),
+            _ => todo!(),
+        }
+    }
+
+    fn latest(&self, side: Side) -> anyhow::Result<Option<Save>> {
+        self.get_latest_save(side)
+    }
+
+    fn earliest(&self, side: Side) -> anyhow::Result<Option<Save>> {
+        self.get_earliest_save(side)
     }
 }
