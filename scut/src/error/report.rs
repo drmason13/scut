@@ -45,7 +45,7 @@ fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Resul
         suggestion,
     }) = error.downcast_ref::<ErrorWithSuggestion>()
     {
-        suggestions.push(*suggestion);
+        suggestions.push(suggestion.as_str());
     }
     writeln!(f, "{error}")?;
 
@@ -70,19 +70,19 @@ fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Resul
 fn report_cause<'a>(
     cause: &'a (dyn Error + 'static),
     f: &mut fmt::Formatter<'_>,
-    suggestions: &mut Vec<&'static str>,
+    suggestions: &mut Vec<&'a str>,
 ) -> fmt::Result {
     if let Some(ErrorWithSuggestion {
         error: _,
         suggestion,
     }) = cause.downcast_ref::<ErrorWithSuggestion>()
     {
-        suggestions.push(*suggestion);
+        suggestions.push(suggestion);
     }
     writeln!(f, "  - {cause}")
 }
 
-fn report_suggestion(suggestion: &'static str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+fn report_suggestion(suggestion: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     for suggestion in suggestion.lines() {
         writeln!(f, "> {suggestion}")?;
     }

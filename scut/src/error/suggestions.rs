@@ -1,29 +1,35 @@
 use std::{error::Error, fmt};
 
-/// Wraps anyhow::Error to add a related "Suggestion", which is a const str advising the user how to proceed
-pub struct ErrorWithSuggestion {
-    pub error: anyhow::Error,
-    pub suggestion: &'static str,
-}
-
+/// Extension trait to add a suggestion to [`anyhow::Error`]
 pub trait ErrorSuggestions<T> {
     /// Add a suggestion to an [`Error`](std::error::Error) type, creating an [`anyhow::Error`] from it inside the [`ErrorWithSuggestion`]
-    fn suggest(self, suggestion: &'static str) -> Result<T, ErrorWithSuggestion>;
+    fn suggest<S>(self, suggestion: S) -> Result<T, ErrorWithSuggestion>
+    where
+        S: Into<String>;
 }
 
 impl<T, E> ErrorSuggestions<T> for Result<T, E>
 where
     anyhow::Error: From<E>,
 {
-    fn suggest(self, suggestion: &'static str) -> Result<T, ErrorWithSuggestion> {
+    fn suggest<S>(self, suggestion: S) -> Result<T, ErrorWithSuggestion>
+    where
+        S: Into<String>,
+    {
         match self {
             Ok(ok) => Ok(ok),
             Err(err) => Err(ErrorWithSuggestion {
                 error: anyhow::Error::from(err),
-                suggestion,
+                suggestion: suggestion.into(),
             }),
         }
     }
+}
+
+/// Wraps anyhow::Error to add a related "Suggestion", which is a message advising the user how to proceed after the error
+pub struct ErrorWithSuggestion {
+    pub error: anyhow::Error,
+    pub suggestion: String,
 }
 
 /// Our Display implementation forwards to the wrapped [`anyhow::Error`], ignoring the suggestion
