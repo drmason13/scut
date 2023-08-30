@@ -22,7 +22,7 @@ impl GameSavesFolder {
         attempt: usize,
         save: SaveOrAutosave,
     ) -> anyhow::Result<Option<PathBuf>> {
-        if attempt >= 1 {
+        if attempt > 1 {
             return Err(anyhow::anyhow!(
                 "failed to find {save} in your game saves folder {}",
                 self.folder.location.display()
