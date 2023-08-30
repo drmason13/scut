@@ -5,10 +5,10 @@ use std::{
 
 use anyhow::Context;
 
+use crate::interface::FileSystem;
 use crate::save::{path_to_save, Save};
-use crate::{interface::FileSystem, Side};
 
-use super::{Index, Query, TurnQuery};
+use super::IterIndex;
 
 /// Capable of storing and retrieving saves in a Folder on the user's computer.
 pub struct Folder {
@@ -80,44 +80,14 @@ impl Folder {
 
         Ok(())
     }
-
-    pub fn get_latest_save(&self, side: Side) -> anyhow::Result<Option<Save>> {
-        Ok(self
-            .saves
-            .keys()
-            .filter(|save| save.side == side)
-            .cloned()
-            .max_by_key(|save| save.turn))
-    }
-
-    pub fn get_earliest_save(&self, side: Side) -> anyhow::Result<Option<Save>> {
-        Ok(self
-            .saves
-            .keys()
-            .filter(|save| save.side == side)
-            .cloned()
-            .min_by_key(|save| save.turn))
-    }
 }
 
-impl Index for Folder {
-    fn search(&self, query: Query) -> anyhow::Result<Vec<Save>> {
-        match query {
-            Query {
-                turn: Some(TurnQuery::Single(turn)),
-                side,
-                player: None,
-                part: None,
-            } => todo!(),
-            _ => todo!(),
-        }
-    }
+/// Folders are able to return an iterator of saves, so they fulfil the blanket implementation of [`Index`] for iterators of saves...
+/// and get a free implementation of Index - hooray!
+impl<'a> IterIndex<'a> for Folder {
+    type Iter = std::collections::hash_map::Keys<'a, Save, PathBuf>;
 
-    fn latest(&self, side: Side) -> anyhow::Result<Option<Save>> {
-        self.get_latest_save(side)
-    }
-
-    fn earliest(&self, side: Side) -> anyhow::Result<Option<Save>> {
-        self.get_earliest_save(side)
+    fn iter(&'a self) -> Self::Iter {
+        self.saves.keys()
     }
 }

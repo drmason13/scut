@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
@@ -58,6 +58,10 @@ impl LocalStorage for GameSavesFolder {
 
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
         self.attempt_locate_save(0, SaveOrAutosave::autosave())
+    }
+
+    fn location(&self) -> &Path {
+        self.folder.location.as_path()
     }
 
     fn index(&self) -> &dyn crate::interface::Index {

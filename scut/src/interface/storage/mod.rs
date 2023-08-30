@@ -22,6 +22,9 @@ pub trait LocalStorage {
     /// They are uploaded by scut as the start of turn save for the next team.
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>>;
 
+    /// The location of this storage, i.e. the folder where saves should be extracted to
+    fn location(&self) -> &Path;
+
     /// Return a reference to an implementation of Index that provides the [`search`] method used to find certain saves within this storage.
     ///
     /// Note that the result of a [`search`] only contains the saves that matched, and not their path within local storage.
@@ -44,7 +47,7 @@ pub trait RemoteStorage {
     /// The game save file could be compressed when moved to remote storage.
     fn upload(&mut self, save: &Save, local_path: &Path) -> anyhow::Result<()>;
 
-    /// Return a reference to an implementation of Index that provides the [`search`] method used to find certain saves within this storage.
+    /// Return a reference to an implementation of [`Index`] that provides the [`search`] method used to find certain saves within this storage.
     ///
     /// Note that the result of a [`search`] only contains the saves that matched, and not their location within remote storage.
     ///

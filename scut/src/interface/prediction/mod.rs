@@ -1,7 +1,9 @@
 pub mod classic_prediction;
-pub mod patient_prediction;
+pub mod simple_prediction;
 
-use crate::Save;
+use crate::{Save, Side};
+
+use super::{LocalStorage, RemoteStorage};
 
 /// This trait is for the logic behind choosing which saves to download, which saves to upload and what turn the autosave should be uploaded as.
 ///
@@ -18,17 +20,48 @@ use crate::Save;
 /// [`predict_turn`]: Prediction::predict_turn
 /// [`upload_autosave_as`]: Prediction::upload_autosave_as
 pub trait Prediction {
-    /// Ask the Prediction implementation what turn they think it is, implementations may choose not to implement this.
-    fn predict_turn(&self) -> Option<u32> {
-        None
+    /// Ask the Prediction implementation what turn they think it is for the given [`Side`], implementations may choose not to implement this.
+    ///
+    /// The returned turn that it "is" is the turn that should be downloaded or uploaded,
+    /// i.e. the "current turn" that scut needs to act on (often the "next turn" in another sense)
+    #[allow(unused_variables)]
+    fn predict_turn(
+        &self,
+        side: Side,
+        player: &str,
+        local_storage: &mut dyn LocalStorage,
+        remote_storage: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<Option<u32>> {
+        Ok(None)
     }
 
     /// Return all the [`Save`]s that should be downloaded.
-    fn predict_downloads(&self, turn: u32) -> Vec<Save>;
+    fn predict_downloads(
+        &self,
+        turn: u32,
+        side: Side,
+        player: &str,
+        local_storage: &mut dyn LocalStorage,
+        remote_storage: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<Vec<Save>>;
 
     /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is hanlded via [`upload_autosave_as`](Prediction::upload_autosave_as)
-    fn predict_uploads(&self, turn: u32) -> Vec<Save>;
+    fn predict_uploads(
+        &self,
+        turn: u32,
+        side: Side,
+        player: &str,
+        local_storage: &mut dyn LocalStorage,
+        remote_storage: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<Vec<Save>>;
 
-    /// Return a [`Save`] the autosave should be uploaded as, and a boolean indicating whether it should be uploaded now.
-    fn predict_autosave(&self, turn: u32) -> (Save, bool);
+    /// Return a [`Save`] the autosave should be uploaded as, and optionally an indication if it should be uploaded now or not.
+    fn predict_autosave(
+        &self,
+        turn: u32,
+        side: Side,
+        player: &str,
+        local_storage: &mut dyn LocalStorage,
+        remote_storage: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<(Save, Option<bool>)>;
 }
