@@ -10,5 +10,5 @@ anyhow = "1.0.75"
 dirs = "5.0.1"
 dropbox-dir = "1.0.0"
 parsely = { path = "../../parsely" }
-serde = "1.0.188"
+serde = { version = "1.0.188", features = ["derive"] }
 toml = "0.7.6"

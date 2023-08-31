@@ -1,5 +1,6 @@
 mod command;
 pub mod path;
+pub mod testing_error;
 pub use command::{output_error, CommandError};
 
 mod suggestions;

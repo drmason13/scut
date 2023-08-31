@@ -18,12 +18,12 @@ impl LocalFileSystem {
 }
 
 impl FileSystem for LocalFileSystem {
-    fn file_exists(&self, path: &Path) -> anyhow::Result<bool> {
+    fn file_exists(&mut self, path: &Path) -> anyhow::Result<bool> {
         Ok(path.try_exists()?)
     }
 
     // TODO: only search for files in folder - rename method
-    fn paths_in_folder(&self, folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    fn paths_in_folder(&mut self, folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
         let files = fs::read_dir(folder)
             .with_context(|| format!("failed to list files in '{}'", folder.display(),))?;
 
@@ -33,7 +33,7 @@ impl FileSystem for LocalFileSystem {
             .with_context(|| format!("failed to list files in '{}'", folder.display()))
     }
 
-    fn write_string_to_file(&self, content: &str, path: &Path) -> anyhow::Result<()> {
+    fn write_string_to_file(&mut self, content: &str, path: &Path) -> anyhow::Result<()> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).with_context(|| {
                 format!("failed to create parent directory: '{}'", dir.display())
@@ -44,7 +44,7 @@ impl FileSystem for LocalFileSystem {
             .with_context(|| format!("failed to write to file: '{}'", path.display()))
     }
 
-    fn read_file_to_string(&self, path: &Path) -> anyhow::Result<String> {
+    fn read_file_to_string(&mut self, path: &Path) -> anyhow::Result<String> {
         std::fs::read_to_string(path)
             .with_context(|| format!("failed to read from file: '{}'", path.display()))
     }

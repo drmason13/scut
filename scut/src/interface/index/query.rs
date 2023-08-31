@@ -1,8 +1,9 @@
-use std::ops::{RangeFrom, RangeFull, RangeInclusive, RangeTo};
+use std::ops::{RangeFrom, RangeFull, RangeInclusive, RangeToInclusive};
 
 use crate::{Save, Side};
 
 /// All the fields to filter [`Save`]s by, each field can be set to `None` to indicate a Wildcard search for that field
+#[derive(Debug, Clone, PartialEq)]
 pub struct Query<'a> {
     /// match the [`TurnQuery`] (either a single turn or within a range)
     pub turn: Option<TurnQuery>,
@@ -37,7 +38,7 @@ impl<'a> Query<'a> {
         self.turn = match (from, to) {
             (Some(a), Some(b)) => Some(TurnQuery::Inclusive(a..=b)),
             (Some(a), None) => Some(TurnQuery::LowerBounded(a..)),
-            (None, Some(b)) => Some(TurnQuery::UpperBounded(..b)),
+            (None, Some(b)) => Some(TurnQuery::UpperBounded(..=b)),
             (None, None) => None,
         };
         self
@@ -53,10 +54,7 @@ impl<'a> Query<'a> {
         self
     }
 
-    pub fn part<S>(mut self, part: Option<&'a str>) -> Self
-    where
-        S: Into<String>,
-    {
+    pub fn part(mut self, part: Option<&'a str>) -> Self {
         self.part = Some(part);
         self
     }
@@ -106,10 +104,57 @@ impl Save {
 /// This is used in favor of generics so that the interface can remain object safe.
 ///
 /// (I don't think the interfaces strictly *need* to be object safe but it might turn out to be helpful that they are)
+#[derive(Debug, Clone, PartialEq)]
 pub enum TurnQuery {
     Single(u32),
     Inclusive(RangeInclusive<u32>),
     LowerBounded(RangeFrom<u32>),
-    UpperBounded(RangeTo<u32>),
+    UpperBounded(RangeToInclusive<u32>),
     Unbounded(RangeFull),
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::interface::index::mock_index::MockIndex;
+    use crate::interface::Index;
+
+    use super::*;
+
+    #[test]
+    fn query_works() {
+        use crate::{Save, Side};
+
+        let saves = &[
+            Save::new(Side::Allies, 1),
+            Save::new(Side::Axis, 2),
+            Save::new(Side::Allies, 3).player("A"),
+            Save::new(Side::Axis, 4).player("B"),
+            Save::new(Side::Allies, 5).player("A").part("1"),
+        ];
+
+        let mock_index = MockIndex::new(saves);
+
+        for (query, expected_count) in &[
+            (Query::new(), 5),
+            (Query::new().side(Side::Allies), 3),
+            (Query::new().side(Side::Allies).player(Some("A")), 2),
+            (Query::new().side(Side::Allies).player(Some("B")), 0),
+            (Query::new().side(Side::Axis).player(Some("A")), 0),
+            (Query::new().side(Side::Axis).player(Some("B")), 1),
+            (Query::new().side(Side::Axis).player(None), 1),
+            (Query::new().part(None), 4),
+            (Query::new().part(Some("1")), 1),
+            (Query::new().turn(4), 1),
+            (Query::new().turn_in_range(Some(2), Some(3)), 2),
+            (Query::new().turn_in_range(None, Some(4)), 4),
+            (Query::new().turn_in_range(Some(4), None), 2),
+            (Query::new().turn_in_range(None, None), 5),
+        ] {
+            assert_eq!(
+                mock_index.search(query).unwrap().len(),
+                *expected_count,
+                "query {query:?} had wrong count {expected_count}"
+            );
+        }
+    }
 }

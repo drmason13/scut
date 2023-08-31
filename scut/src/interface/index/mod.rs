@@ -10,6 +10,9 @@ pub use self::query::Query;
 pub mod folder;
 pub mod query;
 
+#[cfg(test)]
+pub mod mock_index;
+
 /// The [`Index`] interface allows searching for [`Save`]s by turn, Side, player and/or part using a query.
 /// As well as getting the earliest or latest turn for a [`Side`].
 ///

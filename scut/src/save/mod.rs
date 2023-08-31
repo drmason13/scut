@@ -18,6 +18,34 @@ pub struct Save {
 }
 
 impl Save {
+    /// create a new turn start Save for a given side and turn
+    pub fn new(side: Side, turn: u32) -> Self {
+        Save {
+            side,
+            turn,
+            player: None,
+            part: None,
+        }
+    }
+
+    /// Builder method to set the player of this save
+    pub fn player<S>(mut self, player: S) -> Self
+    where
+        S: Into<String>,
+    {
+        self.player = Some(player.into());
+        self
+    }
+
+    /// Builder method to set the part of this save
+    pub fn part<S>(mut self, part: S) -> Self
+    where
+        S: Into<String>,
+    {
+        self.part = Some(part.into());
+        self
+    }
+
     /// Turn this save into the "turn start save" for next turn
     pub fn next_turn(self) -> Self {
         let next_turn = match self.side {

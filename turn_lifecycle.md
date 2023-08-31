@@ -114,5 +114,7 @@ This is case "start save and teammate's prev save"
 As GM keeps saying, just... download your team's saves from remote that aren't in local
 and... upload your team's saves from local that aren't in remote
 
+See `SimplePrediction`
+
 Simple!
 
