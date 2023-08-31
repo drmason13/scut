@@ -3,18 +3,14 @@
 //! This Prediction implementation implements `predict_turn`, using the enemy turns available in RemoteStorage to determine what turn it must be...
 //! Waiting *patiently* for your teammate to upload a turn start save for the enemy turn
 
-use std::cell::RefCell;
-
 use crate::{
-    interface::{index::Query, LocalStorage, RemoteStorage, UserInteraction},
+    interface::{index::Query, LocalStorage, RemoteStorage},
     Save, Side,
 };
 
 use super::Prediction;
 
-pub struct SimplePrediction {
-    ui: RefCell<dyn UserInteraction>,
-}
+pub struct SimplePrediction;
 
 impl Prediction for SimplePrediction {
     fn predict_turn(
@@ -30,8 +26,6 @@ impl Prediction for SimplePrediction {
         } else {
             1
         };
-
-        (*self.ui.borrow_mut()).message(&format!("It appears to be turn {turn}"));
 
         Ok(Some(turn))
     }
