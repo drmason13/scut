@@ -5,7 +5,7 @@ use scut_core::{
         compression::SevenZipCompression,
         file_system::local_file_system::LocalFileSystem,
         storage::{dropbox_folder::DropboxFolder, game_saves_folder::GameSavesFolder},
-        Folder, LocalStorage, RemoteStorage,
+        LocalStorage, RemoteStorage,
     },
     Config,
 };
@@ -16,26 +16,27 @@ pub(crate) fn ready_storage(
     let compression = SevenZipCompression::new(&config.seven_zip_path);
 
     let remote_storage = DropboxFolder::new(
-        Folder::new(&config.dropbox, Box::new(LocalFileSystem::new()))
-            .with_context(|| {
-                format!(
-                    "failed to load dropbox folder with path '{}'",
-                    config.dropbox.display()
-                )
-            })
-            .suggest("Use `scut config edit` to review and update your config")?,
+        config.dropbox.clone(),
+        Box::new(LocalFileSystem::new()),
         Box::new(compression),
-    );
-    let local_storage = GameSavesFolder::new(
-        Folder::new(&config.saves, Box::new(LocalFileSystem::new()))
+    )
+    .with_context(|| {
+        format!(
+            "failed to load dropbox folder with path '{}'",
+            config.dropbox.display()
+        )
+    })
+    .suggest("Use `scut config edit` to review and update your config")?;
+
+    let local_storage =
+        GameSavesFolder::new(config.saves.clone(), Box::new(LocalFileSystem::new()))
             .with_context(|| {
                 format!(
                     "failed to load game saves folder with path '{}'",
                     config.saves.display()
                 )
             })
-            .suggest("Use `scut config edit` to review and update your config")?,
-    );
+            .suggest("Use `scut config edit` to review and update your config")?;
 
     Ok((Box::new(local_storage), Box::new(remote_storage)))
 }

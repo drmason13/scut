@@ -127,32 +127,44 @@ impl MockFileSystem {
         }
     }
 
-    pub fn set_file_content(&mut self, path: &Path, content: String) {
+    pub fn set_file_content(
+        &mut self,
+        path: &Path,
+        content: String,
+    ) -> Result<(), MockError<String>> {
         if let Some(obj) = self.objects.get_mut(path) {
             match obj {
                 Object::File(f) => f.content = Some(content),
-                Object::Folder(_) => panic!(
-                    "'{}' should be a file in mock_filesystem: {self:?}",
-                    path.display()
-                ),
+                Object::Folder(_) => {
+                    return Err(MockError::new(format!(
+                        "'{}' is a folder in mock_filesystem: {self:?}",
+                        path.display()
+                    )))
+                }
             };
+            Ok(())
+        } else {
+            Err(MockError::new(format!(
+                "'{}' does not exist in mock_filesystem: {self:?}",
+                path.display()
+            )))
         }
     }
 
-    pub fn get_file_content(&mut self, path: &Path) -> Option<&String> {
+    pub fn get_file_content(&mut self, path: &Path) -> Result<Option<&String>, MockError<String>> {
         if let Some(obj) = self.objects.get(path) {
             match obj {
-                Object::File(f) => f.content.as_ref(),
-                Object::Folder(_) => panic!(
-                    "'{}' should be a file in mock_filesystem: {self:?}",
+                Object::File(f) => Ok(f.content.as_ref()),
+                Object::Folder(_) => Err(MockError::new(format!(
+                    "'{}' is a folder in mock_filesystem: {self:?}",
                     path.display()
-                ),
+                ))),
             }
         } else {
-            panic!(
-                "'{}' should be a file in mock_filesystem: {self:?}",
+            Err(MockError::new(format!(
+                "'{}' does not exist in mock_filesystem: {self:?}",
                 path.display()
-            )
+            )))
         }
     }
 }
@@ -189,7 +201,7 @@ impl Default for MockFileSystem {
 /// /out/of/folder/again.rs
 /// ```
 impl FromStr for MockFileSystem {
-    type Err = ();
+    type Err = MockError<()>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut file_system = MockFileSystem::new();
@@ -385,7 +397,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_mock_file_system() {
+    fn parse_mock_file_system() {
         let string = r"
 /path/to/foo.rs
 /path/to/folder/
@@ -430,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_mock_file_system_folders_contain_files() {
+    fn parse_mock_file_system_folders_contain_files() {
         let string = r"
 /path/to/folder/
     file_a
@@ -465,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_mock_file_system_statuses() {
+    fn parse_mock_file_system_statuses() {
         let string = r"
 !/path/to/error.rs
 ?/path/to/missing-folder/

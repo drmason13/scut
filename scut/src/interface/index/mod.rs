@@ -7,7 +7,6 @@ use crate::{Save, Side};
 
 pub use self::query::Query;
 
-pub mod folder;
 pub mod query;
 
 #[cfg(test)]

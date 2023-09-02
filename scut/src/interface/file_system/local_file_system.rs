@@ -68,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_local_file_system() -> Result<(), Box<dyn std::error::Error>> {
+    fn local_file_system() -> Result<(), Box<dyn std::error::Error>> {
         let tmpdir = tempfile::tempdir()?;
 
         let _ = fs::File::create(tmpdir.path().join("file1"))?;
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     #[ignore = "TODO: test behavior when there are symlinks involved"]
-    fn test_local_file_system_handles_symlinks() -> Result<(), Box<dyn std::error::Error>> {
+    fn local_file_system_handles_symlinks() -> Result<(), Box<dyn std::error::Error>> {
         todo!("test behavior when there are symlinks involved")
     }
 }

@@ -7,6 +7,9 @@
 mod seven_zip;
 pub use seven_zip::SevenZipCompression;
 
+#[cfg(test)]
+pub mod mock_compression;
+
 use std::path::Path;
 
 pub trait Compression {
