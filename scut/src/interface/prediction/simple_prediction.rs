@@ -104,3 +104,46 @@ impl Prediction for SimplePrediction {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::interface::storage::mock_index_storage::MockIndexStorage;
+
+    use super::*;
+
+    #[test]
+    fn simple_prediction_works() -> anyhow::Result<()> {
+        let prediction = SimplePrediction;
+
+        let mut remote_storage = MockIndexStorage::new(vec![
+            Save::new(Side::Axis, 1),
+            Save::new(Side::Axis, 1).player("DM"),
+            Save::new(Side::Axis, 1).player("DG"),
+            Save::new(Side::Axis, 2),
+            Save::new(Side::Allies, 1),
+            Save::new(Side::Allies, 1).player("GM"),
+            Save::new(Side::Allies, 1).player("TG"),
+        ]);
+
+        let mut local_storage = MockIndexStorage::new(vec![
+            Save::new(Side::Axis, 1),
+            Save::new(Side::Axis, 1).player("DM"),
+        ]);
+
+        assert_eq!(
+            prediction.predict_downloads(
+                1,
+                Side::Axis,
+                "DG",
+                &mut local_storage,
+                &mut remote_storage
+            )?,
+            vec![
+                Save::new(Side::Axis, 1).player("DG"),
+                Save::new(Side::Axis, 2),
+            ]
+        );
+
+        Ok(())
+    }
+}

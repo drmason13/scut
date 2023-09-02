@@ -5,6 +5,9 @@
 pub mod dropbox_folder;
 pub mod game_saves_folder;
 
+#[cfg(test)]
+pub mod mock_index_storage;
+
 use std::path::{Path, PathBuf};
 
 use crate::{interface::Index, Save};
