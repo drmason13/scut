@@ -55,7 +55,7 @@ impl Folder {
     /// currently, one of the paths will "win" but I don't think it's deterministic which one will win,
     /// so it seems preferable to detect such duplicates and error early
     pub fn refresh_saves(&mut self) -> anyhow::Result<()> {
-        let all_files = self.file_system.paths_in_folder(&self.location)?;
+        let all_files = self.file_system.files_in_folder(&self.location)?;
 
         let saves = all_files
             .into_iter()

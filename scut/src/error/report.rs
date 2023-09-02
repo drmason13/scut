@@ -8,7 +8,7 @@ use crate::error::ErrorWithSuggestion;
 ///
 /// ## Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// # use scut_core::error::Report;
 /// fn my_fallible_function() -> Result<(), Report> {
 /// # const _: &str = stringify! {

@@ -293,7 +293,7 @@ impl FileSystem for MockFileSystem {
         }
     }
 
-    fn paths_in_folder(&mut self, path: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    fn files_in_folder(&mut self, path: &Path) -> anyhow::Result<Vec<PathBuf>> {
         match self.objects.get(path) {
             Some(Object::Folder(folder)) => match folder.status {
                 status @ Status::Exists => {

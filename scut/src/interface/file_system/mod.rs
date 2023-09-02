@@ -11,7 +11,7 @@ pub mod mock_file_system;
 pub trait FileSystem {
     fn file_exists(&mut self, path: &Path) -> anyhow::Result<bool>;
 
-    fn paths_in_folder(&mut self, folder: &Path) -> anyhow::Result<Vec<PathBuf>>;
+    fn files_in_folder(&mut self, folder: &Path) -> anyhow::Result<Vec<PathBuf>>;
 
     fn write_string_to_file(&mut self, content: &str, path: &Path) -> anyhow::Result<()>;
 
