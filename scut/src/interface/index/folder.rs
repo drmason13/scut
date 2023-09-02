@@ -136,10 +136,22 @@ mod tests {
             .locate_save(&Save::new(Side::Axis, 1).player("DM"))
             .expect("save should exist");
 
-        for log in folder.file_system.log() {
-            println!("{log}");
-        }
-
         assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_folder_works_with_error_files() {
+        let mock_file_system = MockFileSystem::from_str(indoc::indoc! {r"
+            saves/
+                ?autosave.sav
+                !Axis DM 1.sav
+                Allies 1.sav
+                ?Allies NO 99.sav
+        "})
+        .unwrap();
+
+        let folder = Folder::new(&PathBuf::from("saves"), Box::new(mock_file_system));
+
+        assert!(folder.is_err());
     }
 }

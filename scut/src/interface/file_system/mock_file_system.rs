@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     fmt,
     path::{Path, PathBuf},
-    slice::Iter,
     str::FromStr,
 };
 
@@ -52,7 +51,6 @@ pub struct Folder {
 #[derive(Debug, PartialEq)]
 pub struct MockFileSystem {
     objects: HashMap<PathBuf, Object>,
-    log: Vec<Event>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -75,7 +73,7 @@ pub enum Event {
 
 impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{self:?}")
+        write!(f, "FS EVENT: {self:?}")
     }
 }
 
@@ -83,13 +81,7 @@ impl MockFileSystem {
     pub fn new() -> Self {
         MockFileSystem {
             objects: HashMap::new(),
-            log: Vec::new(),
         }
-    }
-
-    /// Get the log
-    pub fn log<'a>(&'a self) -> Iter<'a, Event> {
-        self.log.iter()
     }
 
     pub fn add_file(&mut self, path: PathBuf, status: Status, content: Option<String>) {
@@ -112,6 +104,12 @@ impl MockFileSystem {
                 files: Vec::new(),
             }),
         );
+    }
+
+    pub fn add_file_to_folder(&mut self, folder: &Path, file: File) {
+        if let Some(Object::Folder(folder)) = self.objects.get_mut(folder) {
+            folder.files.push(file)
+        }
     }
 
     pub fn add_file_inside_folder(&mut self, folder: &Path, file: File) {
@@ -274,19 +272,17 @@ impl FileSystem for MockFileSystem {
                 status @ Status::Exists => {
                     let exists = true;
 
-                    self.log
-                        .push(Event::FileExists(path.into(), status, exists));
+                    println!("{}", Event::FileExists(path.into(), status, exists));
                     Ok(exists)
                 }
                 status @ Status::Missing => {
                     let exists = false;
 
-                    self.log
-                        .push(Event::FileExists(path.into(), status, exists));
+                    println!("{}", Event::FileExists(path.into(), status, exists));
                     Ok(exists)
                 }
                 status @ Status::Error => {
-                    self.log.push(Event::FileExists(path.into(), status, false));
+                    println!("{}", Event::FileExists(path.into(), status, false));
                     Err(MockError::new(status))?
                 }
             },
@@ -301,15 +297,30 @@ impl FileSystem for MockFileSystem {
         match self.objects.get(path) {
             Some(Object::Folder(folder)) => match folder.status {
                 status @ Status::Exists => {
-                    self.log.push(Event::PathsInFolder(
-                        path.into(),
-                        status,
-                        folder.files.len(),
-                    ));
-                    Ok(folder.files.iter().cloned().map(|f| f.path).collect())
+                    println!(
+                        "{}",
+                        Event::PathsInFolder(path.into(), status, folder.files.len(),)
+                    );
+                    folder
+                        .files
+                        .iter()
+                        .cloned()
+                        .filter_map(|f| match f.status {
+                            Status::Exists => Some(Ok(f.path)),
+                            Status::Missing => None,
+                            Status::Error => {
+                                Some(Err(anyhow::Error::from(MockError::new(Status::Error))))
+                            }
+                        })
+                        .collect::<Result<Vec<_>, _>>()
                 }
-                Status::Missing => Err(MockError::new(Status::Missing))?,
-                Status::Error => Err(MockError::new(Status::Error))?,
+                status => {
+                    println!(
+                        "{}",
+                        Event::PathsInFolder(path.into(), status, folder.files.len(),)
+                    );
+                    Err(MockError::new(status))?
+                }
             },
             Some(Object::File(_)) => panic!(
                 "'{}' should be a folder in mock filesystem: {self:?}",
@@ -326,11 +337,10 @@ impl FileSystem for MockFileSystem {
         match self.objects.get(path) {
             Some(Object::File(f)) => {
                 let status = f.status;
-                self.log.push(Event::WriteStringToFile(
-                    path.into(),
-                    status,
-                    content.to_string(),
-                ));
+                println!(
+                    "{}",
+                    Event::WriteStringToFile(path.into(), status, content.to_string(),)
+                );
                 match status {
                     Status::Exists => Ok(()),
                     status @ Status::Missing | status @ Status::Error => {
@@ -349,7 +359,7 @@ impl FileSystem for MockFileSystem {
         match self.objects.get(path) {
             Some(Object::File(f)) => {
                 let status = f.status;
-                self.log.push(Event::ReadFileToString(path.into(), status));
+                println!("{}", Event::ReadFileToString(path.into(), status));
                 match status {
                     Status::Exists => Ok(f.content.clone().unwrap_or_else(|| {
                         panic!(
