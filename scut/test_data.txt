@@ -1,0 +1,61 @@
+<Axis DM>
+Local:
+Axis 1
+Axis 1 DM
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Axis 1 DG
+Axis 2
+
+Uploads:
+
+<Axis DG>
+Local:
+Axis 1
+Axis 1 DM
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Axis 1 DG
+Axis 2
+
+Uploads:
+
+<Allies TG>
+Local:
+Axis 1
+Axis 1 DM
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Uploads:
+

@@ -40,7 +40,7 @@ fn parse_part(input: &str) -> ParseResult<'_, String> {
         .parse(remaining)
 }
 
-fn parse_save(input: &str) -> ParseResult<'_, Save> {
+pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
     // Side Start Turn
     // "Axis[ ]start 123";
     let side_start_turn = parse_side

@@ -4,7 +4,7 @@ mod side;
 
 use std::{fmt, path::Path};
 
-use self::parse::ParseSaveError;
+pub use self::parse::{parse_save, ParseSaveError};
 
 pub use autosave::SaveOrAutosave;
 pub use side::Side;
