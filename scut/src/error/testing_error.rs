@@ -19,15 +19,3 @@ impl<T: fmt::Debug> fmt::Display for MockError<T> {
         write!(f, "{:?}", self.0)
     }
 }
-
-/// Use this to raise an error if something wrong/unexpected happens in an error handling test to indicate that the test has failed!
-#[derive(Debug, Clone, PartialEq)]
-pub struct TestError;
-
-impl Error for TestError {}
-
-impl fmt::Display for TestError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "<<<TEST ERROR>>>".fmt(f)
-    }
-}

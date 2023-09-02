@@ -51,7 +51,7 @@ impl TomlFileConfig {
         Ok(Some(config))
     }
 
-    fn save_config_to_disk(&self, config: &Config) -> anyhow::Result<()> {
+    fn save_config_to_disk(&mut self, config: &Config) -> anyhow::Result<()> {
         let content = toml::to_string_pretty(config).context("failed to save config file")?;
 
         let mut attempt = 0;
