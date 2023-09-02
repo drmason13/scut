@@ -91,3 +91,55 @@ impl<'a> IterIndex<'a> for Folder {
         self.saves.keys()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use crate::{interface::file_system::mock_file_system::MockFileSystem, Side};
+
+    use super::*;
+
+    #[test]
+    fn test_folder_works() {
+        let mock_file_system = MockFileSystem::from_str(indoc::indoc! {r"
+            saves/
+                autosave.sav
+                Axis DM 1.sav
+                Allies 1.sav
+                ?Allies NO 99.sav
+        "})
+        .unwrap();
+
+        let folder = Folder::new(&PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
+        assert_eq!(
+            folder
+                .locate_save(&Save::new(Side::Axis, 1).player("DM"))
+                .expect("save should exist"),
+            Some(PathBuf::from("saves/Axis DM 1.sav").as_path())
+        );
+    }
+
+    #[test]
+    fn test_folder_works_with_missing_files() {
+        let mock_file_system = MockFileSystem::from_str(indoc::indoc! {r"
+            saves/
+                ?autosave.sav
+                ?Axis DM 1.sav
+                Allies 1.sav
+                ?Allies NO 99.sav
+        "})
+        .unwrap();
+
+        let folder = Folder::new(&PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
+        let actual = folder
+            .locate_save(&Save::new(Side::Axis, 1).player("DM"))
+            .expect("save should exist");
+
+        for log in folder.file_system.log() {
+            println!("{log}");
+        }
+
+        assert_eq!(actual, None);
+    }
+}

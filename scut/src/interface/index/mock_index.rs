@@ -29,6 +29,8 @@ impl<'a> IterIndex<'a> for MockIndex {
 
 #[cfg(test)]
 mod tests {
+    use crate::interface::{index::Query, Index};
+
     use super::*;
 
     #[test]
@@ -37,5 +39,18 @@ mod tests {
 
         let saves = &[Save::new(Side::Allies, 1)];
         let _ = MockIndex::new(saves);
+    }
+
+    #[test]
+    fn mock_index_is_searchable() {
+        use crate::{Save, Side};
+
+        let saves = &[Save::new(Side::Allies, 1)];
+        let index = MockIndex::new(saves);
+
+        assert_eq!(
+            index.search(&Query::new()).unwrap(),
+            vec![Save::new(Side::Allies, 1)]
+        );
     }
 }

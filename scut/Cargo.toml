@@ -12,3 +12,6 @@ dropbox-dir = "1.0.0"
 parsely = { path = "../../parsely" }
 serde = { version = "1.0.188", features = ["derive"] }
 toml = "0.7.6"
+
+[dev-dependencies]
+indoc = "2.0.3"

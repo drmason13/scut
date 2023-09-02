@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
+    fmt,
     path::{Path, PathBuf},
+    slice::Iter,
     str::FromStr,
 };
 
@@ -71,12 +73,23 @@ pub enum Event {
     TestFailure(PathBuf, String),
 }
 
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 impl MockFileSystem {
     pub fn new() -> Self {
         MockFileSystem {
             objects: HashMap::new(),
             log: Vec::new(),
         }
+    }
+
+    /// Get the log
+    pub fn log<'a>(&'a self) -> Iter<'a, Event> {
+        self.log.iter()
     }
 
     pub fn add_file(&mut self, path: PathBuf, status: Status, content: Option<String>) {
