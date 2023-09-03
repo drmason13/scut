@@ -6,7 +6,7 @@
 //! This is a cli tool to facilitate sharing saves in 2v2 play by email games of Strategic Command (World at War).
 //!
 //! ### Installation (Windows only)
-//! * Download the latest release from https://github.com/drmason13/scut/releases
+//! * Download the latest release from <https://github.com/drmason13/scut/releases>
 //! * Extract scut.exe out of scut.zip
 //! * Place scut.exe wherever you like, e.g. create the folder `C:\\Program Files\scut\` and place scut.exe inside it.
 //! * You might want to add scut.exe's location to your path, otherwise use a full path to execute scut e.g. `'C:\\Program Files\scut\scut.exe' config show` instead of just `scut config show`

@@ -109,7 +109,7 @@ impl RemoteStorage for DropboxFolder {
     }
 }
 
-/// Folders are able to return an iterator of saves, so they fulfil the blanket implementation of [`Index`] for iterators of saves...
+/// Folders are able to return an iterator of saves, so they fulfil the blanket implementation of [`Index`](crate::interface::Index) for iterators of saves...
 /// and get a free implementation of Index - hooray!
 impl<'a> IterIndex<'a> for DropboxFolder {
     type Iter = std::collections::hash_map::Keys<'a, Save, PathBuf>;

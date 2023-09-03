@@ -1,7 +1,6 @@
 //! The names of these Prediction implementations are faily arbitrary!
 //!
-//! This Prediction implementation implements `predict_turn`, using the enemy turns available in RemoteStorage to determine what turn it must be...
-//! Waiting *patiently* for your teammate to upload a turn start save for the enemy turn
+//! This Prediction implementation implements `predict_turn`, using the friendly turns already available in RemoteStorage to determine what turn it must be.
 
 use crate::{
     interface::{index::Query, LocalStorage, RemoteStorage},
@@ -88,14 +87,10 @@ impl Prediction for SimplePrediction {
         _remote_storage: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
         let enemy_side = side.other_side();
-        let enemy_turn = match enemy_side {
-            // Allies play the same turn as Axis (Axis *1*, Allies *1*, Axis 2, Allies 2, ...)
-            Side::Allies => turn,
-            // Axis play the turn after (Axis 1, Allies *1*, Axis *2*, Allies 2, ...)
-            Side::Axis => turn + 1,
-        };
+        let enemy_turn = side.next_turn(turn);
 
         // for simplicity, always ask the user if they want to upload the autosave!
+        // TODO: predict false if predict_downloads predicts any downloads
         Ok((
             Save {
                 turn: enemy_turn,

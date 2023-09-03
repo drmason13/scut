@@ -26,7 +26,7 @@ pub trait Index<'a> {
     fn earliest_save(&'a self, side: Side) -> anyhow::Result<Option<Save>>;
 }
 
-/// We can implement an index using any collection yielding [`&Save`]s. This makes things very flexible!
+/// We can implement an index using any collection yielding [`&Save`](Save)s. This makes things very flexible!
 ///
 /// Simply implement [`IterIndex`] to use this implementation.
 impl<'a, T> Index<'a> for T

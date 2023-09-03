@@ -48,12 +48,7 @@ impl Save {
 
     /// Turn this save into the "turn start save" for next turn
     pub fn next_turn(self) -> Self {
-        let next_turn = match self.side {
-            // Axis go first, so Allies play the same turn number next
-            Side::Axis => self.turn,
-            // Allies go last, so Axis play the next turn number next
-            Side::Allies => self.turn + 1,
-        };
+        let next_turn = self.side.next_turn(self.turn);
         Save {
             player: None,
             side: self.side.other_side(),

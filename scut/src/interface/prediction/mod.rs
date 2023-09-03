@@ -7,7 +7,7 @@ use super::{LocalStorage, RemoteStorage};
 
 /// This trait is for the logic behind choosing which saves to download, which saves to upload and what turn the autosave should be uploaded as.
 ///
-/// The turn parameter for [`predict_downloads`], [`predict_uploads`] and [`upload_autosave_as`] is trusted absolutely.
+/// The turn parameter for [`predict_downloads`], [`predict_uploads`] and [`predict_autosave`] is trusted absolutely.
 ///
 /// Some implementations make their own predictions about what turn it is instead of reading the turn from the config, so
 /// [`predict_turn`] should always be called first and its result fed in (if it isn't `None`).
@@ -18,7 +18,7 @@ use super::{LocalStorage, RemoteStorage};
 /// [`predict_downloads`]: Prediction::predict_downloads
 /// [`predict_uploads`]: Prediction::predict_uploads
 /// [`predict_turn`]: Prediction::predict_turn
-/// [`upload_autosave_as`]: Prediction::upload_autosave_as
+/// [`predict_autosave`]: Prediction::predict_autosave
 pub trait Prediction {
     /// Ask the Prediction implementation what turn they think it is for the given [`Side`], implementations may choose not to implement this.
     ///
@@ -45,7 +45,7 @@ pub trait Prediction {
         remote_storage: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<Save>>;
 
-    /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is hanlded via [`upload_autosave_as`](Prediction::upload_autosave_as)
+    /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is handled via [`predict_autosave`](Prediction::predict_autosave)
     fn predict_uploads(
         &self,
         turn: u32,

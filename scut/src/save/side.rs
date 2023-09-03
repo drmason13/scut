@@ -40,6 +40,32 @@ impl Side {
     pub fn first() -> Self {
         Self::Axis
     }
+
+    /// Return the next turn number for a given [`Side`]. Used when that [`Side`] is ending the turn.
+    ///
+    /// When Axis end the turn, the turn number stays the same.
+    /// ```text
+    /// Axis 1, Allies 1, Axis 2, Allies 2...
+    /// ^^^^^^^^^^^^^^^^
+    /// ```
+    ///
+    /// When Allies end the turn, the turn number increase by 1.
+    /// ```text
+    /// Axis 1, Allies 1, Axis 2, Allies 2...
+    ///         ^^^^^^^^^^^^^^^^
+    /// ```
+    ///
+    /// ```
+    /// # use scut_core::Side;
+    /// assert_eq!(Side::Axis.next_turn(7), 7);
+    /// assert_eq!(Side::Allies.next_turn(7), 8);
+    /// ```
+    pub fn next_turn(&self, turn: u32) -> u32 {
+        match self {
+            Side::Allies => turn + 1,
+            Side::Axis => turn,
+        }
+    }
 }
 
 #[derive(Debug)]

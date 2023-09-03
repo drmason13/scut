@@ -7,8 +7,6 @@ use scut_core::{Config, Key, Setting};
 
 /// Contains the arguments of the upload command.
 ///
-/// [`Upload::run`] will run the upload command.
-///
 /// See [`crate::command::Command`] for all commands.
 #[derive(Debug, Args)]
 pub(crate) struct UploadCmd {

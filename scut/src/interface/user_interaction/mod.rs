@@ -8,7 +8,7 @@ pub trait UserInteraction {
     ///
     /// No response from the user is expected, the message is informational.
     ///
-    /// To ask the user a question see [`confirm`](Interaction::confirm)
+    /// To ask the user a question see [`confirm`](UserInteraction::confirm)
     fn message(&mut self, message: &str);
 
     /// Prompt the user for a simple yes / no response to a question
@@ -25,7 +25,7 @@ pub trait UserInteraction {
     }
 }
 
-/// This function provides a generic method outside of the UserInteraction trait so that it can remain Object Safe
+/// This function provides a generic method outside of the [`UserInteraction`] trait so that it can remain Object Safe
 pub fn query_and_parse<T>(message: &str, ui: &mut dyn UserInteraction) -> Option<T>
 where
     T: FromStr,
