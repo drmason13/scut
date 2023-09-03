@@ -3,7 +3,7 @@ use std::{
     process::Command,
 };
 
-use crate::error::output_error;
+use crate::error::{output_error, path::ErrorPaths};
 
 use anyhow::Context;
 
@@ -31,7 +31,11 @@ impl Compression for SevenZipCompression {
             .arg(to)
             .arg(from);
 
-        let output = command.output().with_context(|| "failed to run 7zip")?;
+        let output = command
+            .output()
+            // Assumption: user is running windows and should have a 7z.exe file
+            .path(self.seven_zip_path.join("7z.exe"))
+            .with_context(|| "failed to run 7zip")?;
 
         output_error(&output)
             .with_context(|| {

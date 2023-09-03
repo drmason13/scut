@@ -116,6 +116,8 @@ impl Prediction for SimplePrediction {
 
         let download_count = self.count_predicted_downloads(turn, side, local, remote)?;
 
+        let autosave_exists = local.locate_autosave()?.is_some();
+
         let autosave_uploaded_already = remote.index().count(
             &Query::new()
                 .side(enemy_side)
@@ -131,7 +133,7 @@ impl Prediction for SimplePrediction {
                 player: None,
                 part: None,
             },
-            Some(download_count == 0 && !autosave_uploaded_already),
+            Some(autosave_exists && download_count == 0 && !autosave_uploaded_already),
         ))
     }
 }
