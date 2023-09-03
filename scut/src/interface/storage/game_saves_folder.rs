@@ -109,7 +109,9 @@ impl GameSavesFolder {
 
 impl LocalStorage for GameSavesFolder {
     fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<PathBuf>> {
-        self.attempt_locate_save(0, SaveOrAutosave::borrowed(save))
+        // previously we avoided this clone with the notion of a BorrowedSave - like Cow
+        // but that made autosaves very difficult to parse due to the lifetime parameter
+        self.attempt_locate_save(0, SaveOrAutosave::save(save.clone()))
     }
 
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
