@@ -3,3 +3,4 @@ members = [
     "scut",
     "cli",
 ]
+resolver = "2"

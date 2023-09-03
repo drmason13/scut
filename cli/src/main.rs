@@ -35,61 +35,65 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, ValueHint};
+use clap::{Parser, Subcommand, ValueHint};
+use command::config::ConfigArgs;
 use scut_core::{
     error::Report,
     interface::{prediction::simple_prediction::SimplePrediction, Terminal},
 };
 
-mod command;
-pub(crate) mod config;
+pub(crate) mod command;
+mod config;
 mod error;
 mod storage;
-
-use command::Command;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub(crate) struct Cli {
     #[command(subcommand)]
-    pub(crate) command: Command,
+    pub(crate) sub_cmd: Option<CliSubcommand>,
 
     /// Load config from PATH instead of the default config path
     #[arg(short, long, value_name = "PATH", value_hint=ValueHint::FilePath)]
     pub(crate) config: Option<PathBuf>,
+
+    /// Override the turn number set in the config.
+    #[arg(short, long)]
+    pub(crate) turn: Option<u32>,
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum CliSubcommand {
+    Config(ConfigArgs),
 }
 
 fn main() -> Result<(), Report> {
-    let cli = Cli::parse();
+    let args = Cli::parse();
 
-    Ok(run(cli)?)
+    Ok(run(args)?)
 }
 
-pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
-    let (mut config, config_service) = config::ready_config(cli.config)?;
+pub(crate) fn run(args: Cli) -> anyhow::Result<()> {
+    let (mut config, config_service) = config::ready_config(args.config)?;
     let command_user_interaction = Box::new(Terminal::new());
 
-    match cli.command {
-        Command::Config(cmd) => cmd.run(config, config_service, command_user_interaction),
-        Command::Download(cmd) => {
+    match args.sub_cmd {
+        Some(CliSubcommand::Config(config_args)) => command::config::run(
+            config_args,
+            config,
+            config_service,
+            command_user_interaction,
+        ),
+        None => {
             let (local_storage, remote_storage) = storage::ready_storage(&config)?;
             let prediction = Box::<SimplePrediction>::default();
-            cmd.run(
+
+            command::run(
+                args.turn,
                 &mut config,
-                config_service,
                 local_storage,
                 remote_storage,
                 prediction,
-                command_user_interaction,
-            )
-        }
-        Command::Upload(cmd) => {
-            let (local_storage, remote_storage) = storage::ready_storage(&config)?;
-            cmd.run(
-                &config,
-                config_service,
-                local_storage,
-                remote_storage,
                 command_user_interaction,
             )
         }

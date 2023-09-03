@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn simple_prediction_works() -> anyhow::Result<()> {
-        let prediction = SimplePrediction::default();
+        let prediction = SimplePrediction;
 
         let mut remote_storage = MockIndexStorage::new(vec![
             Save::new(Side::Axis, 1),

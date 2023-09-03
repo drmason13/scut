@@ -85,10 +85,9 @@ impl TomlFileConfig {
         .into();
 
         let home = dirs::home_dir().context("Unable to find your documents folder")?;
-        let saves = home.join(
-            r#"Documents\My Games\Strategic Command WWII - World at War\Multiplayer\Hotseat"#,
-        );
-        let seven_zip_path = PathBuf::from(r#"C:\Program Files\7-Zip\"#);
+        let saves = home
+            .join(r"Documents\My Games\Strategic Command WWII - World at War\Multiplayer\Hotseat");
+        let seven_zip_path = PathBuf::from(r"C:\Program Files\7-Zip\");
 
         let side = query_and_parse("What side will you be playing as?", ui)
             .ok_or_else(|| anyhow::anyhow!("no side provided"))
