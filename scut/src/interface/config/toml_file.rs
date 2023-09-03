@@ -155,9 +155,9 @@ impl ConfigInit for TomlFileConfig {
 impl ConfigService for TomlFileConfig {}
 
 fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String> {
-    println!("Unable to find your dropbox folder");
-    println!("You may not have the dropbox client installed. This is required to use scut.");
-    println!("If you have installed the dropbox client, then you can enter your dropbox folder to continue.");
+    ui.message("Unable to find your dropbox folder");
+    ui.message("You may not have the dropbox client installed. This is required to use scut.");
+    ui.message("If you have installed the dropbox client, then you can enter your dropbox folder to continue.");
     if !ui.confirm("Would you like to enter your dropbox folder?", Some(true)) {
         return None;
     }
@@ -165,7 +165,7 @@ fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String>
         let dropbox = ui.query("Please enter the absolute path to your dropbox folder");
 
         if dropbox.is_empty() {
-            println!("That's not a valid path");
+            ui.message("That's not a valid path");
             continue;
         }
         match PathBuf::from_str(&dropbox) {
@@ -173,7 +173,7 @@ fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String>
             Ok(dropbox) => match std::fs::read_dir(&dropbox) {
                 Ok(_) => break Some(dropbox.to_string_lossy().to_string()),
                 Err(_) => {
-                    println!("scut wasn't able to list the contents of that folder, which means scut is unlikely to work properly.");
+                    ui.message("scut wasn't able to list the contents of that folder, which means scut is unlikely to work properly.");
                     if ui.confirm("Would you still like to use that folder?", None) {
                         break Some(dropbox.to_string_lossy().to_string());
                     } else {
@@ -182,7 +182,7 @@ fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String>
                 }
             },
             Err(_) => {
-                println!("That path doesn't appear to be a folder that scut is able to read, which means scut is unlikely to work properly.");
+                ui.message("That path doesn't appear to be a folder that scut is able to read, which means scut is unlikely to work properly.");
                 if ui.confirm("Would you still like to use that path?", Some(false)) {
                     break Some(dropbox.to_string());
                 } else {

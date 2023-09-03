@@ -131,9 +131,7 @@ impl Prediction for SimplePrediction {
                 player: None,
                 part: None,
             },
-            Some(dbg!(
-                download_count == 0 && !dbg!(autosave_uploaded_already)
-            )),
+            Some(download_count == 0 && !autosave_uploaded_already),
         ))
     }
 }

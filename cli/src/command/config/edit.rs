@@ -13,8 +13,8 @@ pub fn edit(
         match edit::edit(config_service.serialize(&config)?) {
             Ok(new_string) => break new_string,
             Err(io_err) if io_err.kind() == std::io::ErrorKind::InvalidData => {
-                println!("The edited config was not valid UTF-8");
-                println!("Your changes have not been saved.");
+                ui.message("The edited config was not valid UTF-8");
+                ui.message("Your changes have not been saved.");
 
                 if ui.confirm(
                     "Would you like to try and edit the config again?",
@@ -38,8 +38,8 @@ pub fn edit(
         match config_service.deserialize(new_string.as_str()) {
             Ok(config) => break config,
             Err(e) => {
-                println!("Invalid config: {e}");
-                println!("Your changes have not been saved.");
+                ui.message(&format!("Invalid config: {e}"));
+                ui.message("Your changes have not been saved.");
 
                 if ui.confirm("Would you like to try and edit the config again?", None) {
                     continue;
@@ -57,7 +57,7 @@ pub fn edit(
         .save(&new_config)
         .context("failed to save changes to config")?;
 
-    println!("Config was updated successfully");
+    ui.message("Config was updated successfully");
 
     Ok(())
 }
