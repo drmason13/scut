@@ -59,51 +59,64 @@ impl DownloadCmd {
         let mut confirmation_prompt = String::new();
 
         if !downloads.is_empty() {
-            writeln!(confirmation_prompt, "Will download: {downloads:#?}");
+            writeln!(confirmation_prompt, "Will download:");
+            for download in downloads.iter() {
+                writeln!(confirmation_prompt, "  << {download}");
+            }
         }
 
-        if !downloads.is_empty() {
-            writeln!(confirmation_prompt, "Will upload: {uploads:#?}");
+        if !uploads.is_empty() {
+            writeln!(confirmation_prompt, "Will upload:");
+            for upload in uploads.iter() {
+                writeln!(confirmation_prompt, "  >> {upload}");
+            }
         }
 
         if upload_autosave {
             write!(
                 confirmation_prompt,
-                "Will upload autosave as {next_turn_save}"
+                "Will upload autosave as '{next_turn_save}'"
             );
+        }
+
+        if confirmation_prompt.is_empty() {
+            ui.wait_for_user_before_close("Nothing to do, exiting");
+            return Ok(());
         }
 
         ui.message(&confirmation_prompt);
 
-        if ui.confirm("Is that OK?", Some(true)) {
-            for save in downloads.iter() {
-                let download_path = local.location();
-                remote.download(save, download_path)?;
-            }
-            // yes I recognise we've departed from the traditional purview of the download cmd!
-            // I need to catch up the interface of the cli for this new smarter way of functioning :)
-            for save in uploads.iter() {
-                let local_path = local.locate_save(save)
-                    .with_context(|| format!("No save file for '{}' exists in local saves folder!", &save))?
-                    .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save {}, but that save's file was not found!", &save))
-                    .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
-
-                remote.upload(save, local_path.as_path())?;
-            }
-            if upload_autosave {
-                let local_path = local.locate_autosave()
-                .context("No autosave file exists in local saves folder!")?
-                .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your autosave, but it's file was not found!"))
-                .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
-                local_path.as_path().display();
-
-                remote.upload(&next_turn_save, local_path.as_path())?;
-            }
-
-            ui.wait_for_user_before_close("Done");
-        } else {
+        if !ui.confirm("Is that OK?", Some(true)) {
             ui.wait_for_user_before_close("User cancelled. Stopping.");
+            return Ok(());
         }
+
+        for save in downloads.iter() {
+            let download_path = local.location();
+            remote.download(save, download_path)?;
+        }
+
+        // yes I recognise we've departed from the traditional purview of the download cmd!
+        // I need to catch up the interface of the cli for this new smarter way of functioning :)
+        for save in uploads.iter() {
+            let local_path = local.locate_save(save)
+                .with_context(|| format!("No save file for '{}' exists in local saves folder!", &save))?
+                .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save {}, but that save's file was not found!", &save))
+                .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+
+            remote.upload(save, local_path.as_path())?;
+        }
+
+        if upload_autosave {
+            let local_path = local.locate_autosave()
+            .context("No autosave file exists in local saves folder!")?
+            .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your autosave, but it's file was not found!"))
+            .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+
+            remote.upload(&next_turn_save, local_path.as_path())?;
+        }
+
+        ui.wait_for_user_before_close("Done");
 
         Ok(())
     }

@@ -19,6 +19,8 @@ pub mod mock_index;
 pub trait Index<'a> {
     fn search(&'a self, query: &Query) -> anyhow::Result<Vec<Save>>;
 
+    fn count(&'a self, query: &Query) -> anyhow::Result<usize>;
+
     /// Return the latest turn for a side, if it exists
     fn latest_save(&'a self, side: Side) -> anyhow::Result<Option<Save>>;
 
@@ -39,6 +41,10 @@ where
             .filter(|save| save.matches(query))
             .cloned()
             .collect())
+    }
+
+    fn count(&'a self, query: &Query) -> anyhow::Result<usize> {
+        Ok(self.iter().filter(|save| save.matches(query)).count())
     }
 
     fn latest_save(&'a self, side: Side) -> anyhow::Result<Option<Save>> {

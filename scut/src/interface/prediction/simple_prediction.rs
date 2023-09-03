@@ -116,6 +116,14 @@ impl Prediction for SimplePrediction {
 
         let download_count = self.count_predicted_downloads(turn, side, local, remote)?;
 
+        let autosave_uploaded_already = remote.index().count(
+            &Query::new()
+                .side(enemy_side)
+                .turn(enemy_turn)
+                .player(None)
+                .part(None),
+        )? >= 1;
+
         Ok((
             Save {
                 turn: enemy_turn,
@@ -123,7 +131,9 @@ impl Prediction for SimplePrediction {
                 player: None,
                 part: None,
             },
-            Some(download_count == 0),
+            Some(dbg!(
+                download_count == 0 && !dbg!(autosave_uploaded_already)
+            )),
         ))
     }
 }
