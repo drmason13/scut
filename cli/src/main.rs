@@ -35,9 +35,11 @@
 
 use std::path::PathBuf;
 
-use anyhow::Context;
 use clap::{Parser, ValueHint};
-use scut_core::{error::Report, interface::Terminal};
+use scut_core::{
+    error::Report,
+    interface::{prediction::simple_prediction::SimplePrediction, Terminal},
+};
 
 mod command;
 pub(crate) mod config;
@@ -68,19 +70,18 @@ pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
     let command_user_interaction = Box::new(Terminal::new());
 
     match cli.command {
-        Command::Config(cmd) => cmd
-            .run(config, config_service, command_user_interaction)
-            .context("Something went wrong using the config"),
+        Command::Config(cmd) => cmd.run(config, config_service, command_user_interaction),
         Command::Download(cmd) => {
             let (local_storage, remote_storage) = storage::ready_storage(&config)?;
+            let prediction = Box::new(SimplePrediction);
             cmd.run(
                 &mut config,
                 config_service,
                 local_storage,
                 remote_storage,
+                prediction,
                 command_user_interaction,
             )
-            .context("Something went wrong downloading")
         }
         Command::Upload(cmd) => {
             let (local_storage, remote_storage) = storage::ready_storage(&config)?;
@@ -91,7 +92,6 @@ pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
                 remote_storage,
                 command_user_interaction,
             )
-            .context("Something went wrong uploading")
         }
     }
 }

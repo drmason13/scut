@@ -3,9 +3,13 @@ use clap::Args;
 #[allow(unused_imports)]
 use anyhow::Context;
 use scut_core::{
-    interface::{config::ConfigService, LocalStorage, RemoteStorage, UserInteraction},
-    Config, Save, Side,
+    error::ErrorSuggestions,
+    interface::{
+        config::ConfigService, prediction::Prediction, LocalStorage, RemoteStorage, UserInteraction,
+    },
+    Config,
 };
+use std::fmt::Write;
 
 #[derive(Debug, Args)]
 pub(crate) struct DownloadCmd {
@@ -24,28 +28,77 @@ impl DownloadCmd {
         self,
         config: &mut Config,
         config_service: Box<dyn ConfigService>,
-        local_storage: Box<dyn LocalStorage>,
-        remote_storage: Box<dyn RemoteStorage>,
+        mut local: Box<dyn LocalStorage>,
+        mut remote: Box<dyn RemoteStorage>,
+        prediction: Box<dyn Prediction>,
         mut ui: Box<dyn UserInteraction>,
     ) -> anyhow::Result<()> {
-        let turn = if let Some(turn_override) = self.turn {
-            turn_override
+        let local = &mut *local;
+        let remote = &mut *remote;
+
+        let side = config.side;
+        let player = config.player.as_str();
+        let turn = if self.turn.is_none() {
+            prediction.predict_turn(side, player, local, remote)?
         } else {
-            config.turn
-        };
+            self.turn
+        }
+        .unwrap_or(config.turn);
 
-        let start_save: Option<Save> = None;
-        let team_saves = Vec::<()>::new();
-        let count_of_team_saves = team_saves.len();
+        let downloads = prediction.predict_downloads(turn, side, player, local, remote)?;
+        let uploads = prediction.predict_uploads(turn, side, player, local, remote)?;
+        let (next_turn_save, autosave_prediction) =
+            prediction.predict_autosave(turn, side, player, local, remote)?;
 
-        // on the first turn, Axis (who go first), don't need to download a turn start save
-        // but they might need to download a teammate's save!
-        let is_very_first_turn = turn == 1 && config.side == Side::first();
+        let upload_autosave = downloads.is_empty()
+            && ui.confirm(
+                &format!("Do you want to upload your autosave as: {next_turn_save}?",),
+                autosave_prediction,
+            );
 
-        todo!("download");
+        let mut confirmation_prompt = String::new();
+
+        if !downloads.is_empty() {
+            writeln!(confirmation_prompt, "Will download: {downloads:#?}");
+        }
+
+        if !downloads.is_empty() {
+            writeln!(confirmation_prompt, "Will upload: {uploads:#?}");
+        }
+
+        if upload_autosave {
+            write!(
+                confirmation_prompt,
+                "Will upload autosave as {next_turn_save}"
+            );
+        }
+
+        ui.message(&confirmation_prompt);
 
         if ui.confirm("Is that OK?", Some(true)) {
-            anyhow::bail!("I put this error here to see what would happen");
+            for save in downloads.iter() {
+                let download_path = local.location();
+                remote.download(save, download_path)?;
+            }
+            // yes I recognise we've departed from the traditional purview of the download cmd!
+            // I need to catch up the interface of the cli for this new smarter way of functioning :)
+            for save in uploads.iter() {
+                let local_path = local.locate_save(save)
+                    .with_context(|| format!("No save file for '{}' exists in local saves folder!", &save))?
+                    .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save {}, but that save's file was not found!", &save))
+                    .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+
+                remote.upload(save, local_path.as_path())?;
+            }
+            if upload_autosave {
+                let local_path = local.locate_autosave()
+                .context("No autosave file exists in local saves folder!")?
+                .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your autosave, but it's file was not found!"))
+                .suggest("It looks like you've found a bug in scut! Please report the issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+                local_path.as_path().display();
+
+                remote.upload(&next_turn_save, local_path.as_path())?;
+            }
 
             ui.wait_for_user_before_close("Done");
         } else {

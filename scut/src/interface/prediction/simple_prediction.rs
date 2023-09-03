@@ -19,10 +19,10 @@ impl Prediction for SimplePrediction {
         &self,
         friendly_side: Side,
         _player: &str,
-        _local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        _local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Option<u32>> {
-        let remote_index = remote_storage.index();
+        let remote_index = remote.index();
         let turn = if let Some(save) = remote_index.latest_save(friendly_side)? {
             save.turn
         } else {
@@ -37,15 +37,15 @@ impl Prediction for SimplePrediction {
         turn: u32,
         side: Side,
         _player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
         let query = Query::new()
             .side(side)
             .turn_in_range(Some(turn.saturating_sub(1)), None);
 
-        let local_saves = local_storage.index().search(&query)?;
-        let remote_saves = remote_storage.index().search(&query)?;
+        let local_saves = local.index().search(&query)?;
+        let remote_saves = remote.index().search(&query)?;
 
         let missing_local_saves = remote_saves
             .into_iter()
@@ -60,15 +60,15 @@ impl Prediction for SimplePrediction {
         turn: u32,
         side: Side,
         _player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
         let query = Query::new()
             .side(side)
             .turn_in_range(Some(turn.saturating_sub(1)), None);
 
-        let local_saves = local_storage.index().search(&query)?;
-        let remote_saves = remote_storage.index().search(&query)?;
+        let local_saves = local.index().search(&query)?;
+        let remote_saves = remote.index().search(&query)?;
 
         let missing_friendly_saves = local_saves
             .into_iter()
@@ -83,8 +83,8 @@ impl Prediction for SimplePrediction {
         turn: u32,
         side: Side,
         _player: &str,
-        _local_storage: &mut dyn LocalStorage,
-        _remote_storage: &mut dyn RemoteStorage,
+        _local: &mut dyn LocalStorage,
+        _remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
         let enemy_side = side.other_side();
         let enemy_turn = side.next_turn(turn);

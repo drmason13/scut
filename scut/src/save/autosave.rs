@@ -3,6 +3,7 @@ use std::fmt;
 use crate::Save;
 
 /// This type can be useful for when a Save might be an autosave.
+#[derive(Debug)]
 pub enum SaveOrAutosave {
     Save(Save),
     Autosave,

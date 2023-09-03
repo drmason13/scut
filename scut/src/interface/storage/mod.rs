@@ -15,6 +15,8 @@ use crate::{interface::Index, Save};
 /// Local storage is where the saved Games are ready to be loaded by Strategic Command and played.
 ///
 /// The Local Storage interface defines where Saves should be located within the saved Games folder.
+///
+/// TODO: inject FileSystem as a dependency into these methods
 pub trait LocalStorage {
     /// Returns the filepath containing the given save if it exists.
     fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<PathBuf>>;
@@ -39,6 +41,8 @@ pub trait LocalStorage {
 /// Remote storage is where the saved Games are sent to be shared with other players.
 ///
 /// The Remote Storage interface defines how Saves are moved to and from an external location.
+///
+/// TODO: inject FileSystem as a dependency into these methods
 pub trait RemoteStorage {
     /// Move a game save file from remote storage to local storage.
     ///

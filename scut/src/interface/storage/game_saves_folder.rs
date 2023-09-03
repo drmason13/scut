@@ -31,47 +31,46 @@ impl GameSavesFolder {
         Ok(folder)
     }
 
-    fn attempt_locate_save(
-        &mut self,
-        attempt: usize,
-        save: SaveOrAutosave,
-    ) -> anyhow::Result<Option<PathBuf>> {
-        if attempt > 1 {
-            return Err(anyhow::anyhow!(
-                "failed to find {save} in your game saves folder {}",
-                self.location.display()
-            ))
-            .suggest("Did you remember to save the game?")?;
-        }
+    fn locate_save_with_retry(&mut self, save: SaveOrAutosave) -> anyhow::Result<Option<PathBuf>> {
+        let mut attempt = 0;
 
-        let save_path = match save.borrow() {
-            None => self.locate_autosave()?,
-            Some(save) => self.locate_save(save)?,
+        let save_path = loop {
+            let save_path = match save.borrow() {
+                None => self.get_autosave(),
+                Some(save) => self.get_save(save),
+            };
+
+            if attempt > 1 {
+                break save_path;
+            }
+            attempt += 1;
+
+            if let Some(path) = save_path {
+                return Ok(Some(path.to_path_buf()));
+            } else {
+                self.refresh_saves().with_context(|| {
+                    format!(
+                        "failed to find {save} in your game saves folder {}",
+                        self.location.display()
+                    )
+                })?;
+            }
         };
 
-        if let Some(path) = save_path {
-            Ok(Some(path))
-        } else {
-            // Retry after loading contents from disk again
-            self.refresh_saves().with_context(|| {
-                format!(
-                    "failed to find {save} in your game saves folder {}",
-                    self.location.display()
-                )
-            })?;
-
-            self.attempt_locate_save(attempt + 1, save)
+        match save_path {
+            Some(path) => Ok(Some(path.to_path_buf())),
+            None => Ok(None),
         }
     }
 
     /// Look for a save in this Folder and return its path if it exists
-    pub fn locate_save(&self, save: &Save) -> anyhow::Result<Option<&Path>> {
-        Ok(self.saves.get(save).map(|p| p.as_path()))
+    pub fn get_save(&self, save: &Save) -> Option<&Path> {
+        self.saves.get(save).map(|p| p.as_path())
     }
 
     /// Look for the autosave in this Folder and return its path if it exists
-    pub fn locate_autosave(&self) -> anyhow::Result<Option<&Path>> {
-        Ok(self.autosave.as_deref())
+    pub fn get_autosave(&self) -> Option<&Path> {
+        self.autosave.as_deref()
     }
 
     /// Reloads from disk what saves are in this Folder
@@ -111,11 +110,11 @@ impl LocalStorage for GameSavesFolder {
     fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<PathBuf>> {
         // previously we avoided this clone with the notion of a BorrowedSave - like Cow
         // but that made autosaves very difficult to parse due to the lifetime parameter
-        self.attempt_locate_save(0, SaveOrAutosave::save(save.clone()))
+        self.locate_save_with_retry(SaveOrAutosave::save(save.clone()))
     }
 
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
-        self.attempt_locate_save(0, SaveOrAutosave::autosave())
+        self.locate_save_with_retry(SaveOrAutosave::autosave())
     }
 
     fn location(&self) -> &Path {
@@ -156,13 +155,13 @@ mod tests {
     "})
         .unwrap();
 
-        let folder =
+        let mut folder =
             GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
         assert_eq!(
             folder
                 .locate_save(&Save::new(Side::Axis, 1).player("DM"))
                 .expect("save should exist"),
-            Some(PathBuf::from("saves/Axis DM 1.sav").as_path())
+            Some(PathBuf::from("saves/Axis DM 1.sav"))
         );
     }
 
@@ -177,7 +176,7 @@ mod tests {
     "})
         .unwrap();
 
-        let folder =
+        let mut folder =
             GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
         let actual = folder
             .locate_save(&Save::new(Side::Axis, 1).player("DM"))

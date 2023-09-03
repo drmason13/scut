@@ -5,6 +5,8 @@ use crate::{Save, Side};
 
 use super::{LocalStorage, RemoteStorage};
 
+pub struct PredictionOutput;
+
 /// This trait is for the logic behind choosing which saves to download, which saves to upload and what turn the autosave should be uploaded as.
 ///
 /// The turn parameter for [`predict_downloads`], [`predict_uploads`] and [`predict_autosave`] is trusted absolutely.
@@ -20,6 +22,17 @@ use super::{LocalStorage, RemoteStorage};
 /// [`predict_turn`]: Prediction::predict_turn
 /// [`predict_autosave`]: Prediction::predict_autosave
 pub trait Prediction {
+    /// TODO! One method to get an overall [`PredictionOutput`] with the saves to download, the saves to upload, whether to prompt the user to upload the autosave and what turn to upload the autosave as
+    fn predict_all(
+        &self,
+        side: Side,
+        player: &str,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<PredictionOutput> {
+        todo!()
+    }
+
     /// Ask the Prediction implementation what turn they think it is for the given [`Side`], implementations may choose not to implement this.
     ///
     /// The returned turn that it "is" is the turn that should be downloaded or uploaded,
@@ -29,8 +42,8 @@ pub trait Prediction {
         &self,
         side: Side,
         player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Option<u32>> {
         Ok(None)
     }
@@ -41,8 +54,8 @@ pub trait Prediction {
         turn: u32,
         side: Side,
         player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<Save>>;
 
     /// Return all the [`Save`]s that should be uploaded - disregarding the autosave, which is handled via [`predict_autosave`](Prediction::predict_autosave)
@@ -51,8 +64,8 @@ pub trait Prediction {
         turn: u32,
         side: Side,
         player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<Save>>;
 
     /// Return a [`Save`] the autosave should be uploaded as, and optionally an indication if it should be uploaded now or not.
@@ -61,7 +74,7 @@ pub trait Prediction {
         turn: u32,
         side: Side,
         player: &str,
-        local_storage: &mut dyn LocalStorage,
-        remote_storage: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(Save, Option<bool>)>;
 }

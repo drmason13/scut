@@ -58,7 +58,7 @@ fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Resul
     }
 
     if !suggestions.is_empty() {
-        writeln!(f, "\n")?;
+        writeln!(f)?;
     }
     for suggestion in suggestions {
         report_suggestion(suggestion, f)?;
@@ -77,7 +77,9 @@ fn report_cause<'a>(
         suggestion,
     }) = cause.downcast_ref::<ErrorWithSuggestion>()
     {
-        suggestions.push(suggestion);
+        if !suggestions.iter().any(|s| s == suggestion) {
+            suggestions.push(suggestion);
+        }
     }
     writeln!(f, "  - {cause}")
 }
