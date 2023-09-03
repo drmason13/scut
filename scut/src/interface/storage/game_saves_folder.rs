@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
-use crate::error::ErrorSuggestions;
 use crate::interface::index::IterIndex;
 use crate::interface::{FileSystem, LocalStorage};
 use crate::save::{path_to_save, SaveOrAutosave};

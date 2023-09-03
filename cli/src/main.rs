@@ -73,7 +73,7 @@ pub(crate) fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Config(cmd) => cmd.run(config, config_service, command_user_interaction),
         Command::Download(cmd) => {
             let (local_storage, remote_storage) = storage::ready_storage(&config)?;
-            let prediction = Box::new(SimplePrediction);
+            let prediction = Box::<SimplePrediction>::default();
             cmd.run(
                 &mut config,
                 config_service,

@@ -12,7 +12,32 @@ mod ddt;
 
 use super::Prediction;
 
+#[derive(Debug, Default)]
 pub struct SimplePrediction;
+
+impl SimplePrediction {
+    fn count_predicted_downloads(
+        &self,
+        turn: u32,
+        side: Side,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<usize> {
+        let query = Query::new()
+            .side(side)
+            .turn_in_range(Some(turn.saturating_sub(1)), None);
+
+        let local_saves = local.index().search(&query)?;
+        let remote_saves = remote.index().search(&query)?;
+
+        let predicted_download_count = remote_saves
+            .iter()
+            .filter(|s| !local_saves.contains(s))
+            .count();
+
+        Ok(predicted_download_count)
+    }
+}
 
 impl Prediction for SimplePrediction {
     fn predict_turn(
@@ -70,12 +95,12 @@ impl Prediction for SimplePrediction {
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
 
-        let missing_friendly_saves = local_saves
+        let missing_remote_saves = local_saves
             .into_iter()
             .filter(|s| !remote_saves.contains(s))
             .collect();
 
-        Ok(missing_friendly_saves)
+        Ok(missing_remote_saves)
     }
 
     fn predict_autosave(
@@ -83,14 +108,14 @@ impl Prediction for SimplePrediction {
         turn: u32,
         side: Side,
         _player: &str,
-        _local: &mut dyn LocalStorage,
-        _remote: &mut dyn RemoteStorage,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
         let enemy_side = side.other_side();
         let enemy_turn = side.next_turn(turn);
 
-        // for simplicity, always ask the user if they want to upload the autosave!
-        // TODO: predict false if predict_downloads predicts any downloads
+        let download_count = self.count_predicted_downloads(turn, side, local, remote)?;
+
         Ok((
             Save {
                 turn: enemy_turn,
@@ -98,7 +123,7 @@ impl Prediction for SimplePrediction {
                 player: None,
                 part: None,
             },
-            None,
+            Some(download_count == 0),
         ))
     }
 }
@@ -111,7 +136,7 @@ mod tests {
 
     #[test]
     fn simple_prediction_works() -> anyhow::Result<()> {
-        let prediction = SimplePrediction;
+        let prediction = SimplePrediction::default();
 
         let mut remote_storage = MockIndexStorage::new(vec![
             Save::new(Side::Axis, 1),

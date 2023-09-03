@@ -22,17 +22,6 @@ pub struct PredictionOutput;
 /// [`predict_turn`]: Prediction::predict_turn
 /// [`predict_autosave`]: Prediction::predict_autosave
 pub trait Prediction {
-    /// TODO! One method to get an overall [`PredictionOutput`] with the saves to download, the saves to upload, whether to prompt the user to upload the autosave and what turn to upload the autosave as
-    fn predict_all(
-        &self,
-        side: Side,
-        player: &str,
-        local: &mut dyn LocalStorage,
-        remote: &mut dyn RemoteStorage,
-    ) -> anyhow::Result<PredictionOutput> {
-        todo!()
-    }
-
     /// Ask the Prediction implementation what turn they think it is for the given [`Side`], implementations may choose not to implement this.
     ///
     /// The returned turn that it "is" is the turn that should be downloaded or uploaded,

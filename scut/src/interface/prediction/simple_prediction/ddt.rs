@@ -173,7 +173,7 @@ fn simple_prediction_ddt() -> anyhow::Result<()> {
     let mut test_cases = read_test_cases(data_path.as_path())?;
 
     for test_case in test_cases.iter_mut() {
-        test_case.run(SimplePrediction)?;
+        test_case.run(SimplePrediction::default())?;
     }
 
     Ok(())
