@@ -26,7 +26,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub fn run(&mut self, pred: SimplePrediction) -> anyhow::Result<()> {
+    pub fn run(&mut self, idx: usize, pred: SimplePrediction) -> anyhow::Result<()> {
         let turn = pred
             .predict_turn(
                 self.side,
@@ -61,15 +61,20 @@ impl TestCase {
         )?;
 
         if let Some(autosave_expected) = self.autosave_expected.as_ref() {
-            assert_eq!(*autosave_expected, actual_autosave, "test_case: {self:#?}");
+            assert_eq!(
+                *autosave_expected,
+                actual_autosave,
+                "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}: ??{:#?}",
+                self.local.locate_autosave()
+            );
         }
         assert_eq!(
             self.downloads_expected, actual_downloads,
-            "test_case: {self:#?}"
+            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}"
         );
         assert_eq!(
             self.uploads_expected, actual_uploads,
-            "test_case: {self:#?}"
+            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}"
         );
 
         Ok(())
@@ -97,7 +102,7 @@ pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> 
         .parse(input)?;
 
     let (_, remaining) = ws().many(..).then(token("Local:")).lex(remaining)?;
-    let (_autosave, remaining) = ws()
+    let (autosave, remaining) = ws()
         .many(..)
         .then(token("autosave"))
         .map(|_| SaveOrAutosave::Autosave)
@@ -133,9 +138,9 @@ pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> 
     let (_, remaining) = token("\n\nUploads:").lex(remaining)?;
     let (tmp, remaining) = until("\n\n").lex(remaining)?;
     let (uploads_expected, _) = parse_save.pad().many(..9999).parse(tmp)?;
-
-    let local = MockIndexStorage::new(local_saves);
-    let remote = MockIndexStorage::new(remote_saves);
+    let has_autosave_file = autosave.is_some();
+    let local = MockIndexStorage::new(has_autosave_file, local_saves);
+    let remote = MockIndexStorage::new(has_autosave_file, remote_saves);
 
     Ok((
         TestCase {
@@ -172,8 +177,8 @@ fn simple_prediction_ddt() -> anyhow::Result<()> {
 
     let mut test_cases = read_test_cases(data_path.as_path())?;
 
-    for test_case in test_cases.iter_mut() {
-        test_case.run(SimplePrediction)?;
+    for (idx, test_case) in test_cases.iter_mut().enumerate() {
+        test_case.run(idx + 1, SimplePrediction)?;
     }
 
     Ok(())

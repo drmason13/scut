@@ -105,10 +105,4 @@ mod tests {
 
         Ok(())
     }
-
-    #[test]
-    #[ignore = "TODO: test behavior when there are symlinks involved"]
-    fn local_file_system_handles_symlinks() -> Result<(), Box<dyn std::error::Error>> {
-        todo!("test behavior when there are symlinks involved")
-    }
 }

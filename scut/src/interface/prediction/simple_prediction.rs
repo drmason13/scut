@@ -59,7 +59,10 @@ impl Prediction for SimplePrediction {
         let query = Query::new()
             .side(side)
             .not_player(None)
-            .turn_in_range(Some(turn.saturating_sub(1)), None);
+            .turn_in_range(Some(turn.saturating_sub(1)), None)
+            .or_side(side)
+            .or_player(None)
+            .or_turn(turn);
 
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
@@ -140,31 +143,39 @@ mod tests {
     fn simple_prediction_works() -> anyhow::Result<()> {
         let prediction = SimplePrediction;
 
-        let mut remote_storage = MockIndexStorage::new(vec![
-            Save::new(Side::Axis, 1),
-            Save::new(Side::Axis, 1).player("DM"),
-            Save::new(Side::Axis, 1).player("DG"),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Allies, 1).player("GM"),
-            Save::new(Side::Allies, 1).player("TG"),
-        ]);
+        let mut remote_storage = MockIndexStorage::new(
+            true,
+            vec![
+                Save::new(Side::Axis, 1),
+                Save::new(Side::Axis, 1).player("DM"),
+                Save::new(Side::Axis, 1).player("DG"),
+                Save::new(Side::Axis, 2),
+                Save::new(Side::Allies, 1),
+                Save::new(Side::Allies, 1).player("GM"),
+                Save::new(Side::Allies, 1).player("TG"),
+            ],
+        );
 
-        let mut local_storage = MockIndexStorage::new(vec![
-            Save::new(Side::Axis, 1),
-            Save::new(Side::Axis, 1).player("DM"),
-        ]);
+        let mut local_storage = MockIndexStorage::new(
+            true,
+            vec![
+                Save::new(Side::Axis, 1),
+                Save::new(Side::Axis, 1).player("DG"),
+            ],
+        );
 
         assert_eq!(
             prediction.predict_downloads(
-                1,
+                prediction
+                    .predict_turn(Side::Axis, "DG", &mut local_storage, &mut remote_storage)?
+                    .unwrap(),
                 Side::Axis,
                 "DG",
                 &mut local_storage,
                 &mut remote_storage
             )?,
             vec![
-                Save::new(Side::Axis, 1).player("DG"),
+                Save::new(Side::Axis, 1).player("DM"),
                 Save::new(Side::Axis, 2),
             ]
         );

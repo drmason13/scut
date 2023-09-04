@@ -14,11 +14,13 @@ use super::{LocalStorage, RemoteStorage};
 pub struct MockIndexStorage {
     index: MockIndex,
     path: PathBuf,
+    autosave: bool,
 }
 
 impl MockIndexStorage {
-    pub fn new(saves: Vec<Save>) -> Self {
+    pub fn new(autosave: bool, saves: Vec<Save>) -> Self {
         MockIndexStorage {
+            autosave,
             index: MockIndex::new(saves.iter()),
             path: PathBuf::from("wherever"),
         }
@@ -39,7 +41,11 @@ impl LocalStorage for MockIndexStorage {
     }
 
     fn locate_autosave(&mut self) -> anyhow::Result<Option<PathBuf>> {
-        Ok(None)
+        Ok(if self.autosave {
+            Some(PathBuf::new())
+        } else {
+            None
+        })
     }
 
     fn location(&self) -> &Path {
