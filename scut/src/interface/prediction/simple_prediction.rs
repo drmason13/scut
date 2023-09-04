@@ -20,22 +20,13 @@ impl SimplePrediction {
         &self,
         turn: u32,
         side: Side,
+        player: &str,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<usize> {
-        let query = Query::new()
-            .side(side)
-            .turn_in_range(Some(turn.saturating_sub(1)), None);
-
-        let local_saves = local.index().search(&query)?;
-        let remote_saves = remote.index().search(&query)?;
-
-        let predicted_download_count = remote_saves
-            .iter()
-            .filter(|s| !local_saves.contains(s))
-            .count();
-
-        Ok(predicted_download_count)
+        Ok(self
+            .predict_downloads(turn, side, player, local, remote)?
+            .len())
     }
 }
 
@@ -67,6 +58,7 @@ impl Prediction for SimplePrediction {
     ) -> anyhow::Result<Vec<crate::Save>> {
         let query = Query::new()
             .side(side)
+            .not_player(None)
             .turn_in_range(Some(turn.saturating_sub(1)), None);
 
         let local_saves = local.index().search(&query)?;
@@ -107,14 +99,14 @@ impl Prediction for SimplePrediction {
         &self,
         turn: u32,
         side: Side,
-        _player: &str,
+        player: &str,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
         let enemy_side = side.other_side();
         let enemy_turn = side.next_turn(turn);
 
-        let download_count = self.count_predicted_downloads(turn, side, local, remote)?;
+        let download_count = self.count_predicted_downloads(turn, side, player, local, remote)?;
 
         let autosave_exists = local.locate_autosave()?.is_some();
 
