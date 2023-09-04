@@ -39,10 +39,15 @@ impl Prediction for SimplePrediction {
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Option<u32>> {
         let remote_index = remote.index();
-        let turn = if let Some(save) = remote_index.latest_save(friendly_side)? {
+
+        // the latest save that our team has uploaded
+        let query = &Query::new().side(friendly_side).not_player(None);
+
+        let turn = if let Some(save) = remote_index.latest(query)? {
             save.turn
         } else {
-            1
+            // we'll try to fetch the next turn, so we actually want to think it's turn 0 for the first turn
+            0
         };
 
         Ok(Some(turn))
@@ -62,7 +67,7 @@ impl Prediction for SimplePrediction {
             .turn_in_range(Some(turn.saturating_sub(1)), None)
             .or_side(side)
             .or_player(None)
-            .or_turn(side.next_turn(turn));
+            .or_turn(turn + 1);
 
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
@@ -106,12 +111,12 @@ impl Prediction for SimplePrediction {
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
-        let enemy_side = side.other_side();
-        let enemy_turn = side.next_turn(turn);
+        let autosave_exists = local.locate_autosave()?.is_some();
 
         let download_count = self.count_predicted_downloads(turn, side, player, local, remote)?;
 
-        let autosave_exists = local.locate_autosave()?.is_some();
+        let enemy_side = side.other_side();
+        let enemy_turn = side.next_turn(turn);
 
         let autosave_uploaded_already = remote.index().count(
             &Query::new()

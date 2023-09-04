@@ -62,19 +62,17 @@ impl TestCase {
 
         if let Some(autosave_expected) = self.autosave_expected.as_ref() {
             assert_eq!(
-                *autosave_expected,
-                actual_autosave,
-                "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}: ??{:#?}",
-                self.local.locate_autosave()
+                *autosave_expected, actual_autosave,
+                "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
             );
         }
         assert_eq!(
             self.downloads_expected, actual_downloads,
-            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}"
+            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
         );
         assert_eq!(
             self.uploads_expected, actual_uploads,
-            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}"
+            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
         );
 
         Ok(())
