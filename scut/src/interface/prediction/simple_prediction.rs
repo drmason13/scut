@@ -62,7 +62,7 @@ impl Prediction for SimplePrediction {
             .turn_in_range(Some(turn.saturating_sub(1)), None)
             .or_side(side)
             .or_player(None)
-            .or_turn(turn);
+            .or_turn(side.next_turn(turn));
 
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
