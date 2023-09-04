@@ -5,7 +5,9 @@ use anyhow::Context;
 pub use config::ConfigSubcommand;
 use scut_core::{
     error::ErrorSuggestions,
-    interface::{prediction::Prediction, LocalStorage, RemoteStorage, UserInteraction},
+    interface::{
+        index::Query, prediction::Prediction, LocalStorage, RemoteStorage, UserInteraction,
+    },
     Config,
 };
 
@@ -42,11 +44,20 @@ pub fn run(
         );
 
     let mut confirmation_prompt = String::new();
+    let is_turn_start_save = &Query::new().player(None);
 
     if !downloads.is_empty() {
         writeln!(confirmation_prompt, "Will download:")?;
         for download in downloads.iter() {
-            writeln!(confirmation_prompt, "  ⬇️ {download}")?;
+            writeln!(
+                confirmation_prompt,
+                "  ⬇️ {download}{}",
+                if download.matches(is_turn_start_save) {
+                    " (autosave)"
+                } else {
+                    ""
+                }
+            )?;
         }
     }
 
@@ -66,7 +77,7 @@ pub fn run(
 
     if confirmation_prompt.is_empty() {
         ui.message("Your local saves folder is synced with remote.");
-        ui.wait_for_user_before_close("Nothing to do 💤 ");
+        ui.wait_for_user_before_close("Nothing to do 💤");
         return Ok(());
     }
 
