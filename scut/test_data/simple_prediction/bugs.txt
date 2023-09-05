@@ -1,0 +1,70 @@
+<Axis DM>
+Local:
+autosave = Allies 84, false
+Axis DG 80
+Axis DG 81
+Axis DG 82
+Axis DG 83
+Axis DG 84
+Axis DM 79
+Axis DM 80
+Axis DM 81
+Axis DM 82
+Axis DM 83
+Axis DM 84
+
+Remote:
+Allies 79
+Allies 80
+Allies 81
+Allies 82
+Allies 83
+Allies 84
+Allies GM 79
+Allies GM 80
+Allies GM 81
+Allies GM 82
+Allies GM 83
+Allies TG 79
+Allies TG 80
+Allies TG 81
+Allies TG 82
+Allies TG 83
+Axis 79
+Axis 80
+Axis 81
+Axis 82
+Axis 83
+Axis 84
+Axis DG 79
+Axis DG 80
+Axis DG 81
+Axis DG 82
+Axis DG 83
+Axis DG 84
+Axis DM 79
+Axis DM 80
+Axis DM 81
+Axis DM 82
+Axis DM 83
+Axis DM 84
+
+Downloads:
+
+Uploads:
+
+<Allies GM>
+Local:
+autosave = Axis 1, false
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Allies 1
+
+Downloads:
+Allies 1
+
+Uploads:
+

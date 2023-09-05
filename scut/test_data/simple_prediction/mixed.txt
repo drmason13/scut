@@ -1,0 +1,36 @@
+<Axis DM>
+Local:
+autosave = Allies 7, false
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DM 7 B
+Axis DG 7 A
+Axis DM 7
+
+Remote:
+Axis 6
+Axis DM 6 A
+Axis DM 6 B
+Axis DM 6
+Axis DG 6 A
+Axis DG 6
+Axis 7
+Axis DM 7 A
+Axis DG 7 A
+Axis DG 7 B
+Axis DG 7
+
+Downloads:
+Axis DG 7 B
+Axis DG 7
+
+Uploads:
+Axis DM 7 B
+Axis DM 7
+

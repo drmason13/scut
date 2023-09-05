@@ -169,15 +169,48 @@ pub fn read_test_cases(data_path: &Path) -> anyhow::Result<Vec<TestCase>> {
     Ok(test_cases)
 }
 
-#[test]
-fn simple_prediction_ddt() -> anyhow::Result<()> {
-    let data_path = PathBuf::from("./test_data.txt");
-
-    let mut test_cases = read_test_cases(data_path.as_path())?;
-
-    for (idx, test_case) in test_cases.iter_mut().enumerate() {
-        test_case.run(idx + 1, SimplePrediction)?;
-    }
-
-    Ok(())
+pub fn test_dir() -> PathBuf {
+    PathBuf::from("./test_data/").join("simple_prediction")
 }
+
+macro_rules! ddt_test {
+    ($name:ident, $doc_comment:expr) => {
+        paste::item! {
+            #[doc = $doc_comment]
+            #[test]
+            fn [< simple_prediction_ddt_ $name >]() -> anyhow::Result<()> {
+                let $name = stringify!{ $name };
+                let data_path = test_dir().join(format!("{}.txt", $name));
+
+                let mut test_cases = read_test_cases(data_path.as_path())?;
+
+                for (idx, test_case) in test_cases.iter_mut().enumerate() {
+                    test_case.run(idx + 1, SimplePrediction)?;
+                }
+
+                Ok(())
+            }
+        }
+    };
+}
+
+ddt_test!(
+    mixed,
+    "test cases where prediction predicts both uploads and downloads (with/without autosave)"
+);
+ddt_test!(
+    bugs,
+    "Any fixed prediction bugs can have their own test case"
+);
+ddt_test!(
+    downloads,
+    "test cases where prediction should only predict downloads"
+);
+ddt_test!(
+    uploads,
+    "test cases where prediction should only predict uploads (with/without autosave)"
+);
+ddt_test!(
+    autosave_only,
+    "test cases where prediction should only predict autosave true/false (no downloads or uploads)"
+);

@@ -1,0 +1,96 @@
+<Axis DM>
+Local:
+autosave = Allies 1, false
+Axis 1
+Axis 1 DM
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Axis 1 DG
+Axis 2
+
+Uploads:
+
+<Axis DG>
+Local:
+autosave = Allies 1, false
+Axis 1
+Axis 1 DM
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Axis 1 DG
+Axis 2
+
+Uploads:
+
+<Allies TG>
+Local:
+autosave = Axis 2, false
+Allies 1
+Allies 1 TG
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Allies 1 GM
+
+Uploads:
+
+<Allies GM>
+Local:
+autosave = Axis 2, false
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Axis 2
+Allies 1
+Allies 1 GM
+Allies 1 TG
+
+Downloads:
+Allies 1 GM
+Allies 1 TG
+
+Uploads:
+
+<Allies GM>
+Local:
+autosave = Axis 1, false
+
+Remote:
+Axis 1
+Axis 1 DM
+Axis 1 DG
+Allies 1
+
+Downloads:
+Allies 1
+
+Uploads:
+

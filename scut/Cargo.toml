@@ -15,5 +15,6 @@ toml = "0.7.6"
 
 [dev-dependencies]
 indoc = "2.0.3"
+paste = "1.0.14"
 pretty_assertions = "1.4.0"
 tempfile = "3.8.0"
