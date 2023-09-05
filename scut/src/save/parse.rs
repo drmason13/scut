@@ -13,7 +13,7 @@ impl FromStr for Save {
     }
 }
 
-fn parse_side(input: &str) -> ParseResult<'_, Side> {
+pub fn parse_side(input: &str) -> ParseResult<'_, Side> {
     token("Allies")
         .or(token("allies"))
         .map(|_| Side::Allies)
@@ -21,18 +21,18 @@ fn parse_side(input: &str) -> ParseResult<'_, Side> {
         .parse(input)
 }
 
-fn parse_player(input: &str) -> ParseResult<'_, String> {
+pub fn parse_player(input: &str) -> ParseResult<'_, String> {
     alpha().many(1..100).map(|s| s.to_string()).parse(input)
 }
 
-fn parse_turn(input: &str) -> ParseResult<'_, u32> {
+pub fn parse_turn(input: &str) -> ParseResult<'_, u32> {
     digit()
         .many(1..5)
         .try_map(|n| n.parse::<u32>())
         .parse(input)
 }
 
-fn parse_part(input: &str) -> ParseResult<'_, String> {
+pub fn parse_part(input: &str) -> ParseResult<'_, String> {
     let (_, remaining) = token("part ").optional().lex(input)?;
     alphanum()
         .many(1..100)

@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use parsely::{token, until, ws, Lex, Parse};
+use parsely::{combinator::pad, token, until, ws, Lex, Parse};
 
 use crate::{
     interface::{
         file_system::local_file_system::LocalFileSystem,
         storage::mock_index_storage::MockIndexStorage,
     },
-    save::parse_save,
+    save::{parse_save, parse_side},
     SaveOrAutosave,
 };
 
@@ -92,50 +92,46 @@ impl TestCase {
 /// <uploads expected>
 /// ```
 pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> {
-    let ((side, player), remaining) = token("<")
-        .skip_then((token("Axis").map(|_| Side::Axis)).or(token("Allies").map(|_| Side::Allies)))
-        .then_skip(ws())
-        .then(until(">").map(|s| String::from(s)))
-        .then_skip(token(">"))
+    let test_side_player_marker = pad(
+        token("<"),
+        token(">"),
+        parse_side
+            .then_skip(ws())
+            .then(until(">").map(|s| String::from(s))),
+    );
+    let ((side, player), remaining) = test_side_player_marker
+        .then_skip(ws().optional())
         .parse(input)?;
 
-    let (_, remaining) = ws().many(..).then(token("Local:")).lex(remaining)?;
-    let (autosave, remaining) = ws()
-        .many(..)
-        .then(token("autosave"))
-        .map(|_| SaveOrAutosave::Autosave)
-        .optional()
-        .parse(remaining)?;
-    let (autosave_expected, remaining) = token("=")
-        .pad()
-        .skip_then(parse_save)
-        .then(
-            token(",")
-                .pad()
-                .skip_then(
-                    token("true")
-                        .map(|_| true)
-                        .or(token("false").map(|_| false)),
-                )
-                .optional(),
+    let bool = token("true")
+        .map(|_| true)
+        .or(token("false").map(|_| false));
+
+    let autosave = token("autosave").map(|_| SaveOrAutosave::Autosave);
+    let autosave_expected = token(",").then(ws().optional()).skip_then(bool);
+    let save_and_autosave_expected = parse_save.then(autosave_expected.optional());
+
+    let ((autosave, autosave_expected), remaining) = token("Local:")
+        .then(ws().many(..5))
+        .skip_then(
+            autosave
+                .optional()
+                .then_skip(token(" = "))
+                .then(save_and_autosave_expected.optional()),
         )
-        .optional()
         .parse(remaining)?;
-    let (tmp, remaining) = until("\n\n").lex(remaining)?;
 
-    let (local_saves, _) = parse_save.pad().many(..9999).parse(tmp)?;
+    let parse_saves = || {
+        ws().optional()
+            .skip_then(parse_save.then_skip(ws()).many(..9999))
+            .then_skip(ws().optional())
+    };
 
-    let (_, remaining) = token("\n\nRemote:").lex(remaining)?;
-    let (tmp, remaining) = until("\n\n").lex(remaining)?;
-    let (remote_saves, _) = parse_save.pad().many(..9999).parse(tmp)?;
+    let (local_saves, rem) = parse_saves().parse(remaining)?;
+    let (remote_saves, rem) = token("Remote:").skip_then(parse_saves()).parse(rem)?;
+    let (downloads_expected, rem) = token("Downloads:").skip_then(parse_saves()).parse(rem)?;
+    let (uploads_expected, rem) = token("Uploads:").skip_then(parse_saves()).parse(rem)?;
 
-    let (_, remaining) = token("\n\nDownloads:").lex(remaining)?;
-    let (tmp, remaining) = until("\n\n").lex(remaining)?;
-    let (downloads_expected, _) = parse_save.pad().many(..9999).parse(tmp)?;
-
-    let (_, remaining) = token("\n\nUploads:").lex(remaining)?;
-    let (tmp, remaining) = until("\n\n").lex(remaining)?;
-    let (uploads_expected, _) = parse_save.pad().many(..9999).parse(tmp)?;
     let has_autosave_file = autosave.is_some();
     let local = MockIndexStorage::new(has_autosave_file, local_saves);
     let remote = MockIndexStorage::new(has_autosave_file, remote_saves);
@@ -150,7 +146,7 @@ pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> 
             downloads_expected,
             uploads_expected,
         },
-        remaining,
+        rem,
     ))
 }
 
