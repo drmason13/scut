@@ -68,3 +68,32 @@ Allies 1
 
 Uploads:
 
+<Axis DM>
+Local:
+autosave = Allies 84, false
+Axis DG 80
+Axis DG 81
+Axis DG 82
+Axis DG 83
+Axis DG 84
+Axis DM 79
+Axis DM 80
+Axis DM 81
+Axis DM 82
+Axis DM 83
+Axis DM 84
+
+Remote:
+Allies GM 84
+Allies TG 84
+Axis 85
+Axis DG 84
+Axis DG 85
+Axis DM 84
+
+Downloads:
+Axis 85
+Axis DG 85
+
+Uploads:
+

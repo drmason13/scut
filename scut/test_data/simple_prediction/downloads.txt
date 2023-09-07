@@ -1,7 +1,6 @@
 <Axis DM>
 Local:
 autosave = Allies 1, false
-Axis 1
 Axis 1 DM
 
 Remote:
@@ -22,7 +21,6 @@ Uploads:
 <Axis DG>
 Local:
 autosave = Allies 1, false
-Axis 1
 Axis 1 DM
 
 Remote:
@@ -43,7 +41,6 @@ Uploads:
 <Allies TG>
 Local:
 autosave = Axis 2, false
-Allies 1
 Allies 1 TG
 
 Remote:

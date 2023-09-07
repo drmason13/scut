@@ -3,7 +3,6 @@ Local:
 autosave = Allies 2, true
 Axis DM 1
 Axis DG 1
-Axis 2
 Axis DM 2
 Axis DG 2
 Axis DM 2B
@@ -28,7 +27,6 @@ Local:
 autosave = Allies 2, false
 Axis DM 1
 Axis DG 1
-Axis 2
 Axis DM 2
 Axis DG 2
 Axis DM 2B
@@ -39,7 +37,6 @@ Allies GM 1
 Allies TG 1
 Axis DM 1
 Axis DG 1
-Axis 2
 Axis DM 2
 Axis DG 2
 Axis DG 2B

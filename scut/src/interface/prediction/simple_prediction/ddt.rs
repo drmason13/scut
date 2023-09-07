@@ -63,16 +63,16 @@ impl TestCase {
         if let Some(autosave_expected) = self.autosave_expected.as_ref() {
             assert_eq!(
                 *autosave_expected, actual_autosave,
-                "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
+                "Predicted wrong autosave for test_case {idx}"
             );
         }
         assert_eq!(
             self.downloads_expected, actual_downloads,
-            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
+            "Predicted wrong downloads for test_case {idx}"
         );
         assert_eq!(
             self.uploads_expected, actual_uploads,
-            "test_case {idx}: v{actual_downloads:?}, ^{actual_uploads:?}, predicted_turn = {turn}"
+            "Predicted wrong uploads for test_case {idx}"
         );
 
         Ok(())

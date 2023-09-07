@@ -34,14 +34,14 @@ impl Prediction for SimplePrediction {
     fn predict_turn(
         &self,
         friendly_side: Side,
-        _player: &str,
+        player: &str,
         _local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Option<u32>> {
         let remote_index = remote.index();
 
-        // the latest save that our team has uploaded
-        let query = &Query::new().side(friendly_side).not_player(None);
+        // the latest save that we uploaded
+        let query = &Query::new().side(friendly_side).player(Some(player));
 
         let turn = if let Some(save) = remote_index.latest(query)? {
             save.turn
@@ -64,7 +64,7 @@ impl Prediction for SimplePrediction {
         let query = Query::new()
             .side(side)
             .not_player(None)
-            .turn_in_range(Some(turn.saturating_sub(1)), None)
+            .turn_in_range(Some(turn), None)
             .or_side(side)
             .or_player(None)
             .or_turn(turn + 1);
@@ -72,12 +72,12 @@ impl Prediction for SimplePrediction {
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
 
-        let missing_local_saves = remote_saves
+        let saves_to_download: Vec<_> = remote_saves
             .into_iter()
             .filter(|s| !local_saves.contains(s))
             .collect();
 
-        Ok(missing_local_saves)
+        Ok(saves_to_download)
     }
 
     fn predict_uploads(
@@ -88,9 +88,7 @@ impl Prediction for SimplePrediction {
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
-        let query = Query::new()
-            .side(side)
-            .turn_in_range(Some(turn.saturating_sub(1)), None);
+        let query = Query::new().side(side).turn_in_range(Some(turn), None);
 
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
