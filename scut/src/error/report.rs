@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use tracing::error;
+
 use crate::error::ErrorWithSuggestion;
 
 /// Custom report format for anyhow Errors.
@@ -63,6 +65,8 @@ fn report_error(error: &anyhow::Error, f: &mut fmt::Formatter<'_>) -> fmt::Resul
     for suggestion in suggestions {
         report_suggestion(suggestion, f)?;
     }
+
+    error!("{error}");
 
     Ok(())
 }

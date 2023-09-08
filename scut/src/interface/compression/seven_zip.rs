@@ -6,6 +6,7 @@ use std::{
 use crate::error::{output_error, path::ErrorPaths};
 
 use anyhow::Context;
+use tracing::{debug, instrument};
 
 use super::Compression;
 
@@ -23,10 +24,15 @@ impl SevenZipCompression {
 }
 
 impl Compression for SevenZipCompression {
+    #[instrument(level = "DEBUG", skip_all)]
     fn compress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
+        let path = &self.seven_zip_path;
+
+        debug!(?from, ?to, PATH = path.to_str(), "compressing");
+
         let mut command = Command::new("7z");
         command
-            .env("PATH", self.seven_zip_path.as_os_str())
+            .env("PATH", path.as_os_str())
             .arg("a")
             .arg(to)
             .arg(from);
@@ -34,7 +40,7 @@ impl Compression for SevenZipCompression {
         let output = command
             .output()
             // Assumption: user is running windows and should have a 7z.exe file
-            .path(self.seven_zip_path.join("7z.exe"))
+            .path(path.join("7z.exe"))
             .with_context(|| "failed to run 7zip")?;
 
         output_error(&output)
@@ -53,10 +59,15 @@ impl Compression for SevenZipCompression {
             })
     }
 
+    #[instrument(level = "DEBUG", skip_all)]
     fn decompress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
+        let path = &self.seven_zip_path;
+
+        debug!(?from, ?to, PATH = path.to_str(), "decompressing");
+
         let mut command = Command::new("7z");
         command
-            .env("PATH", self.seven_zip_path.as_os_str())
+            .env("PATH", path.as_os_str())
             .arg("e")
             .arg(from)
             .arg(format!("-o{}", to.display()))

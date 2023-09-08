@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Context;
+use tracing::instrument;
 
 use super::FileSystem;
 
@@ -18,11 +19,13 @@ impl LocalFileSystem {
 }
 
 impl FileSystem for LocalFileSystem {
+    #[instrument(level = "TRACE", skip(self), fields(?path))]
     fn file_exists(&mut self, path: &Path) -> anyhow::Result<bool> {
         Ok(path.try_exists()?)
     }
 
     // TODO: only search for files in folder - rename method
+    #[instrument(level = "TRACE", skip(self), fields(?folder))]
     fn files_in_folder(&mut self, folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
         let files = fs::read_dir(folder)
             .with_context(|| format!("failed to list files in '{}'", folder.display(),))?;
@@ -33,6 +36,7 @@ impl FileSystem for LocalFileSystem {
             .with_context(|| format!("failed to list files in '{}'", folder.display()))
     }
 
+    #[instrument(level = "TRACE", skip(self, content), fields(?path))]
     fn write_string_to_file(&mut self, content: &str, path: &Path) -> anyhow::Result<()> {
         if let Some(dir) = path.parent() {
             fs::create_dir_all(dir).with_context(|| {
@@ -44,6 +48,7 @@ impl FileSystem for LocalFileSystem {
             .with_context(|| format!("failed to write to file: '{}'", path.display()))
     }
 
+    #[instrument(level = "TRACE", skip_all)]
     fn read_file_to_string(&mut self, path: &Path) -> anyhow::Result<String> {
         fs::read_to_string(path)
             .with_context(|| format!("failed to read from file: '{}'", path.display()))

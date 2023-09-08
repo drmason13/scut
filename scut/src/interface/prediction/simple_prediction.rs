@@ -2,6 +2,8 @@
 //!
 //! This Prediction implementation implements `predict_turn`, using the friendly turns already available in RemoteStorage to determine what turn it must be.
 
+use tracing::{debug, instrument};
+
 use crate::{
     interface::{index::Query, LocalStorage, RemoteStorage},
     Save, Side,
@@ -31,9 +33,14 @@ impl SimplePrediction {
 }
 
 impl Prediction for SimplePrediction {
+    #[instrument(
+        level = "DEBUG",
+        skip(self, _local, remote),
+        fields(local = "<ignored>")
+    )]
     fn predict_turn(
         &self,
-        friendly_side: Side,
+        side: Side,
         player: &str,
         _local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
@@ -41,18 +48,31 @@ impl Prediction for SimplePrediction {
         let remote_index = remote.index();
 
         // the latest save that we uploaded
-        let query = &Query::new().side(friendly_side).player(Some(player));
+        let query = &Query::new().side(side).player(Some(player));
 
         let turn = if let Some(save) = remote_index.latest(query)? {
-            save.turn
+            let predicted_turn = save.turn;
+
+            debug!(%save, predicted_turn);
+
+            predicted_turn
         } else {
             // we'll try to fetch the next turn, so we actually want to think it's turn 0 for the first turn
-            0
+            let predicted_turn = 0;
+
+            debug!(predicted_turn, "no friendly save found in remote");
+
+            predicted_turn
         };
 
         Ok(Some(turn))
     }
 
+    #[instrument(
+        level = "DEBUG",
+        skip(self, _player, local, remote),
+        fields(player = "<ignored>")
+    )]
     fn predict_downloads(
         &self,
         turn: u32,
@@ -80,6 +100,11 @@ impl Prediction for SimplePrediction {
         Ok(saves_to_download)
     }
 
+    #[instrument(
+        level = "DEBUG",
+        skip(self, _player, local, remote),
+        fields(player = "<ignored>")
+    )]
     fn predict_uploads(
         &self,
         turn: u32,
@@ -101,6 +126,7 @@ impl Prediction for SimplePrediction {
         Ok(missing_remote_saves)
     }
 
+    #[instrument(level = "DEBUG", skip(self, local, remote))]
     fn predict_autosave(
         &self,
         turn: u32,
@@ -111,10 +137,14 @@ impl Prediction for SimplePrediction {
     ) -> anyhow::Result<(crate::Save, Option<bool>)> {
         let autosave_exists = local.locate_autosave()?.is_some();
 
-        let download_count = self.count_predicted_downloads(turn, side, player, local, remote)?;
-
         let enemy_side = side.other_side();
         let enemy_turn = side.next_turn(turn);
+
+        debug!(autosave_exists, %enemy_side, enemy_turn);
+
+        let download_count = self.count_predicted_downloads(turn, side, player, local, remote)?;
+
+        debug!(download_count);
 
         let autosave_uploaded_already = remote.index().count(
             &Query::new()
@@ -124,15 +154,19 @@ impl Prediction for SimplePrediction {
                 .part(None),
         )? >= 1;
 
-        Ok((
-            Save {
-                turn: enemy_turn,
-                side: enemy_side,
-                player: None,
-                part: None,
-            },
-            Some(autosave_exists && download_count == 0 && !autosave_uploaded_already),
-        ))
+        let upload_autosave_as = Save {
+            turn: enemy_turn,
+            side: enemy_side,
+            player: None,
+            part: None,
+        };
+
+        let should_upload_autosave =
+            Some(autosave_exists && download_count == 0 && !autosave_uploaded_already);
+
+        debug!(autosave_uploaded_already, %upload_autosave_as, should_upload_autosave);
+
+        Ok((upload_autosave_as, should_upload_autosave))
     }
 }
 

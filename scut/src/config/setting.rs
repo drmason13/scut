@@ -2,7 +2,7 @@ use std::{fmt, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Key, Side};
+use crate::{error::ErrorSuggestions, Key, Side};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Setting {
@@ -38,7 +38,8 @@ impl Setting {
             Key::Turn => Ok(Setting::Turn(
                 value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("invalid turn number"))?,
+                    .map_err(|_| anyhow::anyhow!("{value} is not a valid turn number"))
+                    .suggest("Turn numbers must be whole numbers")?,
             )),
         }
     }

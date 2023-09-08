@@ -169,7 +169,7 @@ pub fn test_dir() -> PathBuf {
     PathBuf::from("./test_data/").join("simple_prediction")
 }
 
-macro_rules! ddt_test {
+macro_rules! ddt {
     ($name:ident, $doc_comment:expr) => {
         paste::item! {
             #[doc = $doc_comment]
@@ -190,23 +190,8 @@ macro_rules! ddt_test {
     };
 }
 
-ddt_test!(
-    mixed,
-    "test cases where prediction predicts both uploads and downloads (with/without autosave)"
-);
-ddt_test!(
-    bugs,
-    "Any fixed prediction bugs can have their own test case"
-);
-ddt_test!(
-    downloads,
-    "test cases where prediction should only predict downloads"
-);
-ddt_test!(
-    uploads,
-    "test cases where prediction should only predict uploads (with/without autosave)"
-);
-ddt_test!(
-    autosave_only,
-    "test cases where prediction should only predict autosave true/false (no downloads or uploads)"
-);
+ddt!(mixed, "both uploads and downloads (with/without autosave)");
+ddt!(bugs, "Any fixed prediction bugs get a test case");
+ddt!(downloads, "should only predict downloads");
+ddt!(uploads, "should only predict uploads");
+ddt!(autosave_only, "should only predict autosave");
