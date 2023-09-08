@@ -100,3 +100,17 @@ Downloads:
 
 Uploads:
 
+<Axis DM>
+Local:
+autosave = Allies 1, true
+Axis DM 1
+Axis DG 1
+
+Remote:
+Axis DM 1
+Axis DG 1
+
+Downloads:
+
+Uploads:
+
