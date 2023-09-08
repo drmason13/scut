@@ -46,8 +46,12 @@ impl Prediction for SimplePrediction {
         let turn = if let Some(save) = remote_index.latest(query)? {
             save.turn
         } else {
-            // we'll try to fetch the next turn, so we actually want to think it's turn 0 for the first turn
-            0
+            match friendly_side {
+                // Axis must upload Allies 1 on the first turn
+                Side::Axis => 1,
+                // Allies must download Allies 1 on the first turn
+                Side::Allies => 0,
+            }
         };
 
         Ok(Some(turn))
