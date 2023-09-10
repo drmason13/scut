@@ -3,12 +3,15 @@ use scut_core::{
     interface::{config::ConfigService, UserInteraction},
     Config,
 };
+use tracing::{debug, instrument};
 
+#[instrument(skip_all, ret, err)]
 pub fn edit(
     config: Config,
     mut config_service: Box<dyn ConfigService>,
     ui: &mut dyn UserInteraction,
 ) -> anyhow::Result<()> {
+    debug!("editing config");
     let new_string = loop {
         match edit::edit(config_service.serialize(&config)?) {
             Ok(new_string) => break new_string,

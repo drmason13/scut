@@ -31,14 +31,14 @@ impl TomlFileConfig {
         }
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     pub fn default_location() -> anyhow::Result<PathBuf> {
         dirs::config_dir()
             .map(|p| p.join("scut").join("config.toml"))
             .context("failed to find your system config folder")
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn load_config_from_disk(&mut self) -> anyhow::Result<Option<Config>> {
         let result = self.file_system.read_file_to_string(&self.location);
         let toml_string = match result {
@@ -54,7 +54,7 @@ impl TomlFileConfig {
         Ok(Some(config))
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn save_config_to_disk(&mut self, config: &Config) -> anyhow::Result<()> {
         let content = toml::to_string_pretty(config).context("failed to save config file")?;
 
@@ -76,7 +76,7 @@ impl TomlFileConfig {
     }
 
     // TODO: abstract config defaults into an interface
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn init_config(&mut self) -> anyhow::Result<Config> {
         let ui = &mut *self.user_interaction;
 
@@ -116,28 +116,28 @@ impl TomlFileConfig {
 }
 
 impl ConfigPersistence for TomlFileConfig {
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn save(&mut self, config: &Config) -> anyhow::Result<()> {
         self.save_config_to_disk(config)
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn load(&mut self) -> anyhow::Result<Option<Config>> {
         self.load_config_from_disk()
             .context("failed to load config file")
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn serialize(&self, config: &Config) -> anyhow::Result<String> {
         toml::to_string_pretty(config).context("failed to save config file")
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn deserialize(&self, s: &str) -> anyhow::Result<Config> {
         toml::from_str(s).context("failed to parse config file")
     }
 
-    #[instrument(level = "TRACE", skip_all)]
+    #[instrument(level = "TRACE", skip_all, ret, err)]
     fn location(&self) -> anyhow::Result<String> {
         Ok(self
             .location
@@ -149,7 +149,7 @@ impl ConfigPersistence for TomlFileConfig {
 }
 
 impl ConfigInit for TomlFileConfig {
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn init_config(&mut self) -> anyhow::Result<Config> {
         let config = self.init_config()?;
         self.save(&config)?;
@@ -165,7 +165,7 @@ impl ConfigInit for TomlFileConfig {
 
 impl ConfigService for TomlFileConfig {}
 
-#[instrument(level = "DEBUG", skip_all)]
+#[instrument(skip_all, ret)]
 fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String> {
     ui.message("Unable to find your dropbox folder");
     ui.message("You may not have the dropbox client installed. This is required to use scut.");

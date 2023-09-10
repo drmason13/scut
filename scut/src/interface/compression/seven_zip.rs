@@ -24,7 +24,7 @@ impl SevenZipCompression {
 }
 
 impl Compression for SevenZipCompression {
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn compress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
         let path = &self.seven_zip_path;
 
@@ -59,7 +59,7 @@ impl Compression for SevenZipCompression {
             })
     }
 
-    #[instrument(level = "DEBUG", skip_all)]
+    #[instrument(skip_all, ret, err)]
     fn decompress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
         let path = &self.seven_zip_path;
 

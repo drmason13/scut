@@ -15,7 +15,7 @@ impl MockCompression {
 
 #[allow(unused_variables)]
 impl Compression for MockCompression {
-    #[instrument(level = "DEBUG", skip(self))]
+    #[instrument(skip(self), err)]
     fn compress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
         // let content = match self.file_system.get_file_content(from) {
         //     Ok(Some(content)) => content,
@@ -33,7 +33,7 @@ impl Compression for MockCompression {
         Ok(())
     }
 
-    #[instrument(level = "DEBUG", skip(self))]
+    #[instrument(skip(self), err)]
     fn decompress(&self, from: &Path, to: &Path) -> anyhow::Result<()> {
         // let content = match self.file_system.get_file_content(from) {
         //     Ok(Some(content)) => content,

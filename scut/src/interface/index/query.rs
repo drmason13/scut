@@ -1,11 +1,13 @@
 use crate::{Save, Side};
 
-use self::turn::TurnQuery;
+use self::turn_number::TurnNumberQuery;
 
+mod builder;
 mod part;
 mod player;
 mod side;
 mod turn;
+mod turn_number;
 
 /// More complex nested compound queries could be supported, but the lifetimes become awkward and Boxes become required and it's not even needed.
 #[derive(Debug, Clone, PartialEq)]
@@ -20,11 +22,17 @@ pub enum LogicalCondition {
     Or,
 }
 
-/// All the fields to filter [`Save`]s by, each field can be set to `None` to indicate a Wildcard search for that field
 #[derive(Debug, Clone, PartialEq)]
+pub enum Bool<T> {
+    Is(T),
+    IsNot(T),
+}
+
+/// All the fields to filter [`Save`]s by, each field can be set to `None` to indicate a Wildcard search for that field
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct SubQuery<'a> {
-    /// match the [`TurnQuery`] (either a single turn or within a range)
-    pub turn: Option<Bool<TurnQuery>>,
+    /// match the [`TurnQuery`] (either a single turn_number or within a range)
+    pub turn_number: Option<Bool<TurnNumberQuery>>,
     /// match the side
     pub side: Option<Bool<Side>>,
     /// match the player - use `Some(None)` to match saves with no player (i.e. turn start saves)
@@ -36,7 +44,7 @@ pub struct SubQuery<'a> {
 impl<'a> Query<'a> {
     pub fn new() -> Self {
         Query::Single(SubQuery {
-            turn: None,
+            turn_number: None,
             side: None,
             player: None,
             part: None,
@@ -66,31 +74,39 @@ impl Save {
     pub fn matches_sub_query(
         &self,
         SubQuery {
-            turn,
+            turn_number,
             side,
             player,
             part,
         }: &SubQuery,
     ) -> bool {
-        let turn_matches = match turn {
-            Some(Bool::Is(TurnQuery::Single(turn))) => *turn == self.turn,
-            Some(Bool::Is(TurnQuery::Inclusive(rng))) => rng.contains(&self.turn),
-            Some(Bool::Is(TurnQuery::LowerBounded(rng))) => rng.contains(&self.turn),
-            Some(Bool::Is(TurnQuery::UpperBounded(rng))) => rng.contains(&self.turn),
-            Some(Bool::Is(TurnQuery::Unbounded(_))) => true,
-            Some(Bool::IsNot(TurnQuery::Single(turn))) => *turn != self.turn,
-            Some(Bool::IsNot(TurnQuery::Inclusive(rng))) => !rng.contains(&self.turn),
-            Some(Bool::IsNot(TurnQuery::LowerBounded(rng))) => !rng.contains(&self.turn),
-            Some(Bool::IsNot(TurnQuery::UpperBounded(rng))) => !rng.contains(&self.turn),
-            Some(Bool::IsNot(TurnQuery::Unbounded(_))) => false,
+        let turn_number_matches = match turn_number {
+            Some(Bool::Is(TurnNumberQuery::Single(turn_number))) => {
+                *turn_number == self.turn.number
+            }
+            Some(Bool::Is(TurnNumberQuery::Inclusive(rng))) => rng.contains(&self.turn.number),
+            Some(Bool::Is(TurnNumberQuery::LowerBounded(rng))) => rng.contains(&self.turn.number),
+            Some(Bool::Is(TurnNumberQuery::UpperBounded(rng))) => rng.contains(&self.turn.number),
+            Some(Bool::Is(TurnNumberQuery::Unbounded(_))) => true,
+            Some(Bool::IsNot(TurnNumberQuery::Single(turn_number))) => {
+                *turn_number != self.turn.number
+            }
+            Some(Bool::IsNot(TurnNumberQuery::Inclusive(rng))) => !rng.contains(&self.turn.number),
+            Some(Bool::IsNot(TurnNumberQuery::LowerBounded(rng))) => {
+                !rng.contains(&self.turn.number)
+            }
+            Some(Bool::IsNot(TurnNumberQuery::UpperBounded(rng))) => {
+                !rng.contains(&self.turn.number)
+            }
+            Some(Bool::IsNot(TurnNumberQuery::Unbounded(_))) => false,
             None => true,
         };
 
         let side_matches = side
             .as_ref()
             .map(|sub_query| match sub_query {
-                Bool::Is(s) => *s == self.side,
-                Bool::IsNot(s) => *s != self.side,
+                Bool::Is(s) => *s == self.turn.side,
+                Bool::IsNot(s) => *s != self.turn.side,
             })
             .unwrap_or(true);
 
@@ -110,14 +126,8 @@ impl Save {
             })
             .unwrap_or(true);
 
-        turn_matches && side_matches && player_matches && part_matches
+        turn_number_matches && side_matches && player_matches && part_matches
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Bool<T> {
-    Is(T),
-    IsNot(T),
 }
 
 #[cfg(test)]
@@ -151,11 +161,11 @@ mod tests {
             (Query::new().side(Side::Axis).player(None), 1),
             (Query::new().part(None), 4),
             (Query::new().part(Some("1")), 1),
-            (Query::new().turn(4), 1),
-            (Query::new().turn_in_range(Some(2), Some(3)), 2),
-            (Query::new().turn_in_range(None, Some(4)), 4),
-            (Query::new().turn_in_range(Some(4), None), 2),
-            (Query::new().turn_in_range(None, None), 5),
+            (Query::new().turn_number(4), 1),
+            (Query::new().turn_number_in_range(Some(2), Some(3)), 2),
+            (Query::new().turn_number_in_range(None, Some(4)), 4),
+            (Query::new().turn_number_in_range(Some(4), None), 2),
+            (Query::new().turn_number_in_range(None, None), 5),
         ] {
             assert_eq!(
                 mock_index.search(query).unwrap().len(),
@@ -198,11 +208,11 @@ mod tests {
             (Query::new().side(Side::Axis).not_player(None), 1),
             (Query::new().not_part(None), 1),
             (Query::new().not_part(Some("1")), 4),
-            (Query::new().not_turn(4), 4),
-            (Query::new().turn_not_in_range(Some(2), Some(3)), 3),
-            (Query::new().turn_not_in_range(None, Some(4)), 1),
-            (Query::new().turn_not_in_range(Some(4), None), 3),
-            (Query::new().turn_not_in_range(None, None), 0),
+            (Query::new().not_turn_number(4), 4),
+            (Query::new().turn_number_not_in_range(Some(2), Some(3)), 3),
+            (Query::new().turn_number_not_in_range(None, Some(4)), 1),
+            (Query::new().turn_number_not_in_range(Some(4), None), 3),
+            (Query::new().turn_number_not_in_range(None, None), 0),
         ]
         .iter()
         .enumerate()
@@ -230,7 +240,7 @@ mod tests {
         let mock_index = MockIndex::new(saves);
 
         for (idx, (query, expected_count)) in [
-            (Query::new().side(Side::Allies).or_turn(2), 4),
+            (Query::new().side(Side::Allies).or_turn_number(2), 4),
             (
                 Query::new()
                     .side(Side::Allies)
@@ -243,42 +253,42 @@ mod tests {
                 Query::new()
                     .side(Side::Allies)
                     .player(None)
-                    .turn(1)
+                    .turn_number(1)
                     .or_side(Side::Allies)
                     .or_not_player(None)
-                    .or_turn_in_range(Some(4), Some(5)),
+                    .or_turn_number_in_range(Some(4), Some(5)),
                 2,
             ),
             (
                 Query::new()
                     .not_player(None)
-                    .not_turn(3)
+                    .not_turn_number(3)
                     .and_not_player(Some("A"))
-                    .and_turn_in_range(Some(4), Some(5)),
+                    .and_turn_number_in_range(Some(4), Some(5)),
                 1,
             ),
             (
                 Query::new()
                     .not_player(None)
-                    .turn(3)
+                    .turn_number(3)
                     .or_not_player(Some("A"))
-                    .or_turn_not_in_range(Some(4), Some(5)),
+                    .or_turn_number_not_in_range(Some(4), Some(5)),
                 3,
             ),
             (
                 Query::new()
                     .player(Some("A"))
-                    .turn_in_range(None, Some(1))
+                    .turn_number_in_range(None, Some(1))
                     .or_player(Some("B"))
-                    .or_turn_not_in_range(Some(4), Some(5)),
+                    .or_turn_number_not_in_range(Some(4), Some(5)),
                 0,
             ),
             (
                 Query::new()
                     .player(None)
-                    .turn_in_range(None, Some(1))
+                    .turn_number_in_range(None, Some(1))
                     .or_player(Some("A"))
-                    .or_turn_not_in_range(Some(4), Some(5)),
+                    .or_turn_number_not_in_range(Some(4), Some(5)),
                 2,
             ),
         ]
@@ -311,10 +321,10 @@ mod tests {
         let query = Query::new()
             .side(Side::Axis)
             .not_player(None)
-            .turn_in_range(Some(1_u32.saturating_sub(1_u32)), None)
+            .turn_number_in_range(Some(1_u32.saturating_sub(1_u32)), None)
             .or_side(Side::Axis)
             .or_player(None)
-            .or_turn(1);
+            .or_turn_number(1);
 
         assert_eq!(
             mock_index.search(&query)?,
@@ -328,10 +338,10 @@ mod tests {
         let query = Query::new()
             .side(Side::Axis)
             .not_player(None)
-            .turn_in_range(Some(2_u32.saturating_sub(1_u32)), None)
+            .turn_number_in_range(Some(2_u32.saturating_sub(1_u32)), None)
             .or_side(Side::Axis)
             .or_player(None)
-            .or_turn(2);
+            .or_turn_number(2);
 
         assert_eq!(
             mock_index.search(&query)?,

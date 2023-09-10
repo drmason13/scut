@@ -1,263 +1,195 @@
-use std::ops::{RangeFrom, RangeFull, RangeInclusive, RangeToInclusive};
+use std::cmp::Ordering;
 
-use super::{Bool, LogicalCondition, Query};
+use crate::Turn;
 
-/// All supported [`RangeBounds`](std::ops::RangeBounds) that [`Save`]s can be queried by with respect to their turn.
-///
-/// This is used in favor of generics so that the interface can remain object safe.
-///
-/// (I don't think the interfaces strictly *need* to be object safe but it might turn out to be helpful that they are)
-#[derive(Debug, Clone, PartialEq)]
-pub enum TurnQuery {
-    Single(u32),
-    Inclusive(RangeInclusive<u32>),
-    LowerBounded(RangeFrom<u32>),
-    UpperBounded(RangeToInclusive<u32>),
-    Unbounded(RangeFull),
+use super::{builder::QueryBuildParameter, Query, SubQuery, TurnNumberQuery};
+
+pub struct TurnQuery {
+    order: Ordering,
+    turn: Turn,
+}
+
+impl<'a> QueryBuildParameter<'a> for TurnQuery {
+    fn new_sub_query(self, boolean: bool) -> SubQuery<'a> {
+        let sub_query = self.turn.side.new_sub_query(boolean);
+        match self.order {
+            Ordering::Equal => TurnNumberQuery::Single(self.turn.number),
+            Ordering::Greater => TurnNumberQuery::LowerBounded(self.turn.number..),
+            Ordering::Less => TurnNumberQuery::UpperBounded(..=self.turn.number),
+        }
+        .merge_into(sub_query, boolean)
+    }
+
+    fn merge_into(self, sub_query: SubQuery<'a>, boolean: bool) -> SubQuery<'a> {
+        match self.order {
+            Ordering::Equal => TurnNumberQuery::Single(self.turn.number),
+            Ordering::Greater => TurnNumberQuery::LowerBounded(self.turn.number..),
+            Ordering::Less => TurnNumberQuery::UpperBounded(..=self.turn.number),
+        }
+        .merge_into(self.turn.side.merge_into(sub_query, boolean), boolean)
+    }
 }
 
 impl<'a> Query<'a> {
-    /// Search for a particular turn.
-    ///
-    /// If this query is a [`CompoundQuery`], the first [`SubQuery`] is modified.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    pub fn turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.turn = Some(Bool::Is(TurnQuery::Single(turn)));
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.turn = Some(Bool::Is(TurnQuery::Single(turn)));
-                Query::Compound(sub_query, op, q)
-            }
-        }
+    /// Search for a particular turn
+    pub fn turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build(self)
     }
 
-    /// Or search for a particular turn.
-    ///
-    /// This will create a [`CompoundQuery`] using the [`Or`] condition, or update the second [`SubQuery`] and set the condition to [`Or`].
-    ///
-    /// Note that when creating a [`CompoundQuery`], the new [`SubQuery`] will only search by turn, none of the other [`SubQuery`]'s fields are copied.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    /// [`Or`]: LogicalCondition::Or
-    pub fn or_turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn(turn) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = Some(Bool::Is(TurnQuery::Single(turn)));
-                Query::Compound(q, LogicalCondition::Or, sub_query)
-            }
-        }
+    /// Or search for a particular turn
+    pub fn or_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build_or(self)
     }
 
-    /// And search for a particular turn.
-    ///
-    /// This will create a [`CompoundQuery`] using the [`And`] condition, or update the second [`SubQuery`] and set the condition to [`And`].
-    ///
-    /// Note that when creating a [`CompoundQuery`], the new [`SubQuery`] will only search by turn, none of the other [`SubQuery`]'s fields are copied.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    /// [`And`]: LogicalCondition::And
-    pub fn and_turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn(turn) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = Some(Bool::Is(TurnQuery::Single(turn)));
-                Query::Compound(q, LogicalCondition::And, sub_query)
-            }
-        }
+    /// And search for a particular turn
+    pub fn and_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build_and(self)
     }
 
-    /// Search for any other turn.
-    ///
-    /// If this query is a [`CompoundQuery`], the first [`SubQuery`] is modified.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    pub fn not_turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.turn = Some(Bool::IsNot(TurnQuery::Single(turn)));
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.turn = Some(Bool::IsNot(TurnQuery::Single(turn)));
-                Query::Compound(sub_query, op, q)
-            }
-        }
+    /// Search for any other turn
+    pub fn not_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build_not(self)
     }
 
-    /// Or search for any other turn.
-    ///
-    /// This will create a [`CompoundQuery`] using the [`Or`] condition, or update the second [`SubQuery`] and set the condition to [`Or`].
-    ///
-    /// Note that when creating a [`CompoundQuery`], the new [`SubQuery`] will only search by turn, none of the other [`SubQuery`]'s fields are copied.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    /// [`Or`]: LogicalCondition::Or
-    pub fn or_not_turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().not_turn(turn) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(mut sub_query, _, q) => {
-                sub_query.turn = Some(Bool::IsNot(TurnQuery::Single(turn)));
-                Query::Compound(sub_query, LogicalCondition::Or, q)
-            }
-        }
+    /// Or search for any other turn
+    pub fn or_not_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build_or_not(self)
     }
 
-    /// And search for any other turn.
-    ///
-    /// This will create a [`CompoundQuery`] using the [`And`] condition, or update the second [`SubQuery`] and set the condition to [`And`].
-    ///
-    /// Note that when creating a [`CompoundQuery`], the new [`SubQuery`] will only search by turn, none of the other [`SubQuery`]'s fields are copied.
-    ///
-    /// [`CompoundQuery`]: Query::Compound
-    /// [`And`]: LogicalCondition::And
-    pub fn and_not_turn(self, turn: u32) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().not_turn(turn) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.turn = Some(Bool::IsNot(TurnQuery::Single(turn)));
-                Query::Compound(sub_query, op, q)
-            }
-        }
+    /// And search for any other turn
+    pub fn and_not_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Equal,
+            turn,
+        };
+        turn.build_and_not(self)
     }
 
-    /// Search for a turn within a (possibly unbounded range). The range is inclusive, so the turn equal to `to` will match.
-    ///
-    /// Note that specifying a full range (where from and to are both None) will match any turn
-    pub fn turn_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::Is(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::Is(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::Is(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::Is(TurnQuery::Unbounded(..))),
-                };
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::Is(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::Is(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::Is(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::Is(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(sub_query, op, q)
-            }
-        }
+    /// Search for a particular turn, or a later turn from the same side
+    pub fn min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build(self)
     }
 
-    pub fn or_turn_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn_in_range(from, to) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::Is(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::Is(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::Is(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::Is(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(q, LogicalCondition::Or, sub_query)
-            }
-        }
+    /// Or search for a particular turn, or a later turn from the same side
+    pub fn or_min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build_or(self)
     }
 
-    pub fn and_turn_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn_in_range(from, to) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::Is(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::Is(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::Is(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::Is(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(q, LogicalCondition::And, sub_query)
-            }
-        }
+    /// And search for a particular turn, or a later turn from the same side
+    pub fn and_min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build_and(self)
     }
 
-    /// Search for a turn outside of a (possibly unbounded range). The range is inclusive, so the turn equal to `to` will not match.
-    ///
-    /// Note that specifying a full range (where from and to are both None) cannot possibly match any turn
-    pub fn turn_not_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::IsNot(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::IsNot(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::IsNot(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::IsNot(TurnQuery::Unbounded(..))),
-                };
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::IsNot(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::IsNot(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::IsNot(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::IsNot(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(sub_query, op, q)
-            }
-        }
+    /// Search for any other turn / later turn from the same side
+    pub fn not_min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build_not(self)
     }
 
-    pub fn or_turn_not_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn_not_in_range(from, to) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::IsNot(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::IsNot(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::IsNot(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::IsNot(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(q, LogicalCondition::Or, sub_query)
-            }
-        }
+    /// Or search for any other turn / later turn from the same side
+    pub fn or_not_min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build_or_not(self)
     }
 
-    pub fn and_turn_not_in_range(self, from: Option<u32>, to: Option<u32>) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().turn_not_in_range(from, to) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.turn = match (from, to) {
-                    (Some(a), Some(b)) => Some(Bool::IsNot(TurnQuery::Inclusive(a..=b))),
-                    (Some(a), None) => Some(Bool::IsNot(TurnQuery::LowerBounded(a..))),
-                    (None, Some(b)) => Some(Bool::IsNot(TurnQuery::UpperBounded(..=b))),
-                    (None, None) => Some(Bool::IsNot(TurnQuery::Unbounded(..))),
-                };
-                Query::Compound(q, LogicalCondition::And, sub_query)
-            }
-        }
+    /// And search for any other turn / later turn from the same side
+    pub fn and_not_min_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Greater,
+            turn,
+        };
+        turn.build_and_not(self)
+    }
+
+    /// Search for a particular turn, or a later turn from the same side
+    pub fn max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build(self)
+    }
+
+    /// Or search for a particular turn, or a later turn from the same side
+    pub fn or_max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build_or(self)
+    }
+
+    /// And search for a particular turn, or a later turn from the same side
+    pub fn and_max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build_and(self)
+    }
+
+    /// Search for any other turn / later turn from the same side
+    pub fn not_max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build_not(self)
+    }
+
+    /// Or search for any other turn / later turn from the same side
+    pub fn or_not_max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build_or_not(self)
+    }
+
+    /// And search for any other turn / later turn from the same side
+    pub fn and_not_max_turn(self, turn: Turn) -> Self {
+        let turn = TurnQuery {
+            order: Ordering::Less,
+            turn,
+        };
+        turn.build_and_not(self)
     }
 }

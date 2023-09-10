@@ -40,12 +40,12 @@ use clap::{Parser, Subcommand, ValueHint};
 use command::config::ConfigArgs;
 use scut_core::{
     error::Report,
-    interface::{prediction::simple_prediction::SimplePrediction, Terminal},
+    interface::{predict::simple_predict::SimplePredict, Terminal},
 };
 use tracing::{debug, info, instrument};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_rolling_file::{RollingConditionBase, RollingFileAppenderBase};
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub(crate) mod command;
 mod config;
@@ -65,6 +65,10 @@ pub(crate) struct Cli {
     /// Override the turn number set in the config.
     #[arg(short, long)]
     pub(crate) turn: Option<u32>,
+
+    /// Override the log path set in the config.
+    #[arg(short, long, value_hint=ValueHint::FilePath)]
+    pub(crate) log_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -73,23 +77,32 @@ pub(crate) enum CliSubcommand {
 }
 
 fn main() -> Result<(), Report> {
-    let args = Cli::parse();
+    let Cli {
+        sub_cmd,
+        config,
+        turn,
+        log_path,
+    } = Cli::parse();
 
-    let _guard = setup_tracing()?;
+    let _guard = setup_tracing(log_path)?;
 
     debug!("starting scut");
 
-    Ok(run(args)?).map(|_| info!("success"))
+    Ok(run(sub_cmd, config, turn)?)
 }
 
-#[instrument(skip(args), level = "INFO")]
-pub(crate) fn run(args: Cli) -> anyhow::Result<()> {
-    info!(config_path = ?args.config.as_ref().map(|p| p.display()));
+#[instrument(skip_all, level = "INFO")]
+pub(crate) fn run(
+    sub_cmd: Option<CliSubcommand>,
+    config: Option<PathBuf>,
+    turn: Option<u32>,
+) -> anyhow::Result<()> {
+    info!(config_path = ?config.as_ref().map(|p| p.display()));
 
-    let (mut config, config_service) = config::ready_config(args.config)?;
+    let (mut config, config_service) = config::ready_config(config)?;
     let command_user_interaction = Box::new(Terminal::new());
 
-    match args.sub_cmd {
+    match sub_cmd {
         Some(CliSubcommand::Config(config_args)) => command::config::run(
             config_args,
             config,
@@ -98,31 +111,42 @@ pub(crate) fn run(args: Cli) -> anyhow::Result<()> {
         ),
         None => {
             let (local_storage, remote_storage) = storage::ready_storage(&config)?;
-            let prediction = Box::<SimplePrediction>::default();
+            let predict = Box::<SimplePredict>::default();
 
             command::run(
-                args.turn,
+                turn,
                 &mut config,
                 local_storage,
                 remote_storage,
-                prediction,
+                predict,
                 command_user_interaction,
             )
         }
     }
 }
 
-fn setup_tracing() -> anyhow::Result<WorkerGuard> {
-    let log_file =
-        RollingFileAppenderBase::new("./tracing-logs", RollingConditionBase::new().daily(), 7)
-            .map_err(|e| anyhow::anyhow!(e))
-            .with_context(|| "failed to set up a rolling file appender for bug logging")?;
+fn setup_tracing(log_path: Option<PathBuf>) -> anyhow::Result<WorkerGuard> {
+    let log_path = match log_path {
+        Some(path) => path,
+        None => {
+            let log_dir = dirs::data_local_dir().unwrap_or(PathBuf::from("."));
+            log_dir.join("scut.log")
+        }
+    };
 
-    let (appender, guard) = tracing_appender::non_blocking(log_file);
+    let log_writer = RollingFileAppenderBase::new(log_path, RollingConditionBase::new().daily(), 7)
+        .map_err(|e| anyhow::anyhow!(e))
+        .with_context(|| "failed to set up a rolling file appender for bug logging")?;
+
+    let (appender, guard) = tracing_appender::non_blocking(log_writer);
     tracing_subscriber::fmt()
         .with_ansi(false)
         .with_writer(appender)
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
         .log_internal_errors(false)
         .with_target(false)
         .init();

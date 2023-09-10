@@ -7,6 +7,7 @@ use clap::{Args, Subcommand};
 use scut_core::interface::config::ConfigService;
 use scut_core::interface::UserInteraction;
 use scut_core::{Config, Key, Setting};
+use tracing::{debug, instrument};
 
 /// Read or modify the current configuration file
 ///
@@ -44,6 +45,7 @@ pub enum ConfigSubcommand {
 }
 
 /// Configure scut's config file
+#[instrument(skip_all, ret, err)]
 pub fn run(
     args: ConfigArgs,
     config: Config,
@@ -52,6 +54,7 @@ pub fn run(
 ) -> anyhow::Result<()> {
     match args.sub_cmd {
         ConfigSubcommand::Show => {
+            debug!(subcommand = "show");
             ui.message(&format!(
                 "Config is located at {}",
                 config_service.location()?
@@ -59,10 +62,12 @@ pub fn run(
             ui.message(&config_service.serialize(&config)?);
         }
         ConfigSubcommand::Get { key } => {
+            debug!(subcommand = "get");
             let value = config.get(key);
             ui.message(&format!("{value}"));
         }
         ConfigSubcommand::Set { key, value } => {
+            debug!(subcommand = "set", %key, %value);
             let value = normalise(value);
             let value =
                 Setting::new(key, value).with_context(|| format!("failed to set config.{key}"))?;
@@ -71,6 +76,7 @@ pub fn run(
             ui.message(&format!("config.{key} was updated successfully"));
         }
         ConfigSubcommand::Edit => {
+            debug!(subcommand = "edit");
             edit(config, config_service, &mut *ui)?;
         }
     }

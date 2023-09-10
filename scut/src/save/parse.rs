@@ -2,6 +2,8 @@ use std::{fmt, str::FromStr};
 
 use parsely::*;
 
+use crate::Turn;
+
 use super::{Save, Side};
 
 impl FromStr for Save {
@@ -50,8 +52,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
         .then(parse_turn)
         .map(|(side, turn)| Save {
             player: None,
-            side,
-            turn,
+            turn: Turn::new(side, turn),
             part: None,
         });
 
@@ -66,8 +67,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
         .then(parse_part.optional())
         .map(|(((side, player), turn), part)| Save {
             player: Some(player),
-            side,
-            turn,
+            turn: Turn::new(side, turn),
             part,
         });
 
@@ -82,8 +82,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
         .then(parse_part.optional())
         .map(|(((side, turn), player), part)| Save {
             player: Some(player),
-            side,
-            turn,
+            turn: Turn::new(side, turn),
             part,
         });
 
@@ -94,8 +93,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
         .then(parse_turn)
         .map(|(side, turn)| Save {
             player: None,
-            side,
-            turn,
+            turn: Turn::new(side, turn),
             part: None,
         });
 

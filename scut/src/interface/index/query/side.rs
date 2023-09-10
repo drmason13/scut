@@ -1,89 +1,65 @@
+use std::default::Default;
+
 use crate::Side;
 
-use super::{Bool, LogicalCondition, Query};
+use super::{builder::QueryBuildParameter, Bool, Query, SubQuery};
+
+impl<'a> QueryBuildParameter<'a> for Side {
+    fn new_sub_query(self, boolean: bool) -> SubQuery<'a> {
+        SubQuery {
+            side: Some(if boolean {
+                Bool::Is(self)
+            } else {
+                Bool::IsNot(self)
+            }),
+            ..Default::default()
+        }
+    }
+
+    fn merge_into(self, mut sub_query: SubQuery<'a>, boolean: bool) -> SubQuery<'a> {
+        sub_query.side = Some(if boolean {
+            Bool::Is(self)
+        } else {
+            Bool::IsNot(self)
+        });
+        sub_query
+    }
+}
 
 impl<'a> Query<'a> {
     /// Search for a particular side
     pub fn side(self, side: Side) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.side = Some(Bool::Is(side));
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.side = Some(Bool::Is(side));
-                Query::Compound(sub_query, op, q)
-            }
-        }
+        let side = side;
+        side.build(self)
     }
 
     /// Or search for a particular side
     pub fn or_side(self, side: Side) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().side(side) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.side = Some(Bool::Is(side));
-                Query::Compound(q, LogicalCondition::Or, sub_query)
-            }
-        }
+        let side = side;
+        side.build_or(self)
     }
 
     /// And search for a particular side
     pub fn and_side(self, side: Side) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().side(side) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.side = Some(Bool::Is(side));
-                Query::Compound(q, LogicalCondition::And, sub_query)
-            }
-        }
+        let side = side;
+        side.build_and(self)
     }
 
     /// Search for any other side
     pub fn not_side(self, side: Side) -> Self {
-        match self {
-            Query::Single(mut sub_query) => {
-                sub_query.side = Some(Bool::IsNot(side));
-                Query::Single(sub_query)
-            }
-            Query::Compound(mut sub_query, op, q) => {
-                sub_query.side = Some(Bool::IsNot(side));
-                Query::Compound(sub_query, op, q)
-            }
-        }
+        let side = side;
+        side.build_not(self)
     }
 
     /// Or search for any other side
     pub fn or_not_side(self, side: Side) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().not_side(side) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::Or, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.side = Some(Bool::IsNot(side));
-                Query::Compound(q, LogicalCondition::Or, sub_query)
-            }
-        }
+        let side = side;
+        side.build_or_not(self)
     }
 
     /// And search for any other side
     pub fn and_not_side(self, side: Side) -> Self {
-        match self {
-            Query::Single(q) => match Query::new().side(side) {
-                Query::Single(sub_query) => Query::Compound(q, LogicalCondition::And, sub_query),
-                _ => unreachable!(),
-            },
-            Query::Compound(q, _, mut sub_query) => {
-                sub_query.side = Some(Bool::Is(side));
-                Query::Compound(q, LogicalCondition::And, sub_query)
-            }
-        }
+        let side = side;
+        side.build_and_not(self)
     }
 }

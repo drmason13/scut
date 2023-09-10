@@ -1,19 +1,20 @@
 mod autosave;
 mod parse;
 mod side;
+mod turn;
 
-use std::{fmt, path::Path};
+use std::{cmp::Ordering, fmt, path::Path};
 
 pub use self::parse::*;
 
 pub use autosave::SaveOrAutosave;
 pub use side::Side;
+pub use turn::Turn;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Save {
     pub player: Option<String>,
-    pub side: Side,
-    pub turn: u32,
+    pub turn: Turn,
     pub part: Option<String>,
 }
 
@@ -21,8 +22,7 @@ impl Save {
     /// create a new turn start Save for a given side and turn
     pub fn new(side: Side, turn: u32) -> Self {
         Save {
-            side,
-            turn,
+            turn: Turn::new(side, turn),
             player: None,
             part: None,
         }
@@ -48,11 +48,9 @@ impl Save {
 
     /// Turn this save into the "turn start save" for next turn
     pub fn next_turn(self) -> Self {
-        let next_turn = self.side.next_turn(self.turn);
         Save {
             player: None,
-            side: self.side.other_side(),
-            turn: next_turn,
+            turn: self.turn.next(),
             part: None,
         }
     }
@@ -61,8 +59,7 @@ impl Save {
 impl fmt::Display for Save {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Save {
-            side,
-            turn,
+            turn: Turn { side, number: turn },
             player,
             part,
         } = self;
@@ -91,4 +88,25 @@ impl TryFrom<&Path> for Save {
 
 pub fn path_to_save(path: &Path) -> Option<Save> {
     Save::try_from(path).ok()
+}
+
+impl PartialOrd for Save {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.turn.partial_cmp(&other.turn) {
+            Some(Ordering::Equal) => {}
+            ord => return ord,
+        }
+        match (&self.part, &other.part) {
+            (Some(a), Some(b)) => a.partial_cmp(&b),
+            (None, Some(_)) => Some(Ordering::Greater),
+            (Some(_), None) => Some(Ordering::Less),
+            (None, None) => Some(Ordering::Equal),
+        }
+    }
+}
+
+impl Ord for Save {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }

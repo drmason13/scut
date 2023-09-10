@@ -5,9 +5,7 @@ use anyhow::Context;
 pub use config::ConfigSubcommand;
 use scut_core::{
     error::ErrorSuggestions,
-    interface::{
-        index::Query, prediction::Prediction, LocalStorage, RemoteStorage, UserInteraction,
-    },
+    interface::{index::Query, predict::Predict, LocalStorage, RemoteStorage, UserInteraction},
     Config,
 };
 
@@ -17,7 +15,7 @@ pub fn run(
     config: &mut Config,
     mut local: Box<dyn LocalStorage>,
     mut remote: Box<dyn RemoteStorage>,
-    prediction: Box<dyn Prediction>,
+    predictor: Box<dyn Predict>,
     mut ui: Box<dyn UserInteraction>,
 ) -> anyhow::Result<()> {
     let local = &mut *local;
@@ -26,21 +24,21 @@ pub fn run(
     let side = config.side;
     let player = config.player.as_str();
     let turn = if turn_override.is_none() {
-        prediction.predict_turn(side, player, local, remote)?
+        predictor.predict_turn(side, player, local, remote)?
     } else {
         turn_override
     }
     .unwrap_or(config.turn);
 
-    let downloads = prediction.predict_downloads(turn, side, player, local, remote)?;
-    let uploads = prediction.predict_uploads(turn, side, player, local, remote)?;
-    let (next_turn_save, autosave_prediction) =
-        prediction.predict_autosave(turn, side, player, local, remote)?;
+    let downloads = predictor.predict_downloads(turn, side, player, local, remote)?;
+    let uploads = predictor.predict_uploads(turn, side, player, local, remote)?;
+    let (next_turn_save, autosave_predict) =
+        predictor.predict_autosave(turn, side, player, local, remote)?;
 
     let upload_autosave = autosave_prediction.unwrap_or(downloads.is_empty())
         && ui.confirm(
             &format!("Do you want to upload your autosave as: {next_turn_save}?",),
-            autosave_prediction,
+            autosave_predict,
         );
 
     let mut confirmation_prompt = String::new();

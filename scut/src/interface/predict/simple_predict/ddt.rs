@@ -26,7 +26,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub fn run(&mut self, idx: usize, pred: SimplePrediction) -> anyhow::Result<()> {
+    pub fn run(&mut self, idx: usize, pred: SimplePredict) -> anyhow::Result<()> {
         let turn = pred
             .predict_turn(
                 self.side,
@@ -166,7 +166,7 @@ pub fn read_test_cases(data_path: &Path) -> anyhow::Result<Vec<TestCase>> {
 }
 
 pub fn test_dir() -> PathBuf {
-    PathBuf::from("./test_data/").join("simple_prediction")
+    PathBuf::from("./test_data/").join("simple_predict")
 }
 
 macro_rules! ddt {
@@ -174,14 +174,14 @@ macro_rules! ddt {
         paste::item! {
             #[doc = $doc_comment]
             #[test]
-            fn [< simple_prediction_ddt_ $name >]() -> anyhow::Result<()> {
+            fn [< simple_predict_ddt_ $name >]() -> anyhow::Result<()> {
                 let $name = stringify!{ $name };
                 let data_path = test_dir().join(format!("{}.txt", $name));
 
                 let mut test_cases = read_test_cases(data_path.as_path())?;
 
                 for (idx, test_case) in test_cases.iter_mut().enumerate() {
-                    test_case.run(idx + 1, SimplePrediction)?;
+                    test_case.run(idx + 1, SimplePredict)?;
                 }
 
                 Ok(())
@@ -191,7 +191,7 @@ macro_rules! ddt {
 }
 
 ddt!(mixed, "both uploads and downloads (with/without autosave)");
-ddt!(bugs, "Any fixed prediction bugs get a test case");
+ddt!(bugs, "Any fixed predict bugs get a test case");
 ddt!(downloads, "should only predict downloads");
 ddt!(uploads, "should only predict uploads");
 ddt!(autosave_only, "should only predict autosave");
