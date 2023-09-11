@@ -1,68 +1,53 @@
 use super::{Bool, LogicalCondition, Query, SubQuery, AND, OR};
 
-pub struct QueryBuilder<'a> {
-    query: Query<'a>,
-}
-
 impl<'a> Query<'a> {
-    pub fn builder() -> QueryBuilder<'a> {
-        QueryBuilder::new()
-    }
-}
-
-impl<'a> QueryBuilder<'a> {
-    fn new() -> Self {
-        QueryBuilder {
-            query: Query::new(),
+    pub fn not(self, other: Query<'a>) -> Self {
+        match self {
+            Query::Single {
+                mut boolean,
+                sub_query,
+            } => Query::Single {
+                boolean: boolean.inverse(),
+                sub_query,
+            },
+            Query::Compound {
+                mut boolean,
+                mut a,
+                op,
+                mut b,
+            } => Query::Compound {
+                boolean: boolean.inverse(),
+                a,
+                op,
+                b,
+            },
+            Query::Nested {
+                mut boolean,
+                mut a,
+                op,
+                mut b,
+            } => Query::Nested {
+                boolean: boolean.inverse(),
+                a,
+                op,
+                b,
+            },
         }
     }
 
-    fn build(self) -> Query<'a> {
-        self.query
-    }
-
-    fn not<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(QueryBuilder<'a>) -> QueryBuilder<'a>,
-    {
-        let built = f(QueryBuilder::new());
-
+    pub fn or(mut self, other: Query<'a>) -> Self {
         todo!()
     }
 
-    fn or<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(QueryBuilder<'a>) -> QueryBuilder<'a>,
-    {
-        let built = f(QueryBuilder::new());
-
+    pub fn and<F>(mut self, other: Query<'a>) -> Self {
         todo!()
     }
 
-    fn and<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(QueryBuilder<'a>) -> QueryBuilder<'a>,
-    {
-        let built = f(QueryBuilder::new());
-
+    pub fn or_not<F>(mut self, other: Query<'a>) -> Self {
         todo!()
     }
 
-    fn or_not<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(QueryBuilder<'a>) -> QueryBuilder<'a>,
-    {
-        let built = f(QueryBuilder::new());
-
-        todo!()
-    }
-
-    fn and_not<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(QueryBuilder<'a>) -> QueryBuilder<'a>,
-    {
-        let built = f(QueryBuilder::new());
-
+    pub fn and_not<F>(mut self, other: Query<'a>) -> Self {
         todo!()
     }
 }

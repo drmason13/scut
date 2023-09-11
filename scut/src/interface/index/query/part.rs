@@ -18,10 +18,11 @@ impl<'a> QueryParam<'a> for PartQueryParam<'a> {
     type Value = Option<&'a str>;
 
     fn matches(&self, value: Self::Value) -> bool {
-        self.part == value
+        let matches = self.part == value;
+        self.boolean.apply(matches)
     }
 
-    fn new_sub_query(mut self) -> SubQuery<'a> {
+    fn new_sub_query(self) -> SubQuery<'a> {
         SubQuery {
             part: Some(self),
             ..Default::default()

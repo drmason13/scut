@@ -11,8 +11,14 @@ pub struct SideQueryParam {
 }
 
 impl SideQueryParam {
-    pub fn from_side(side: Side, boolean: Bool) -> Self {
+    pub fn from_side(boolean: Bool, side: Side) -> Self {
         SideQueryParam { boolean, side }
+    }
+}
+
+impl From<Side> for SideQueryParam {
+    fn from(value: Side) -> Self {
+        SideQueryParam::from_side(Bool::Is, value)
     }
 }
 

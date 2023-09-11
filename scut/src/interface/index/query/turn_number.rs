@@ -11,6 +11,12 @@ pub struct TurnNumberQueryParam {
     range: TurnNumberRange,
 }
 
+impl From<u32> for TurnNumberQueryParam {
+    fn from(value: u32) -> Self {
+        TurnNumberQueryParam::single(Bool::Is, value)
+    }
+}
+
 impl TurnNumberQueryParam {
     pub fn single(boolean: Bool, n: u32) -> Self {
         TurnNumberQueryParam {
@@ -56,7 +62,13 @@ impl<'a> QueryParam<'a> for TurnNumberQueryParam {
     type Value = u32;
 
     fn matches(&self, value: Self::Value) -> bool {
-        todo!()
+        match &self.range {
+            TurnNumberRange::Single(n) => *n == value,
+            TurnNumberRange::Inclusive(rng) => rng.contains(&value),
+            TurnNumberRange::LowerBounded(rng) => rng.contains(&value),
+            TurnNumberRange::UpperBounded(rng) => rng.contains(&value),
+            TurnNumberRange::Unbounded(_) => true,
+        }
     }
 
     fn new_sub_query(self) -> super::SubQuery<'a> {

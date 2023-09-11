@@ -17,12 +17,30 @@ const AND: LogicalCondition = LogicalCondition::And(Bool::Is);
 const OR_NOT: LogicalCondition = LogicalCondition::Or(Bool::Not);
 const AND_NOT: LogicalCondition = LogicalCondition::And(Bool::Not);
 
-/// More complex nested compound queries could be supported, but the lifetimes become awkward and Boxes become required and it's not even needed.
+/// Used to search for saves by specifying various conditions based on the turn, side, player and part of the save.
+///
+/// It is the input to methods of [`Index`] like [`search`]
+///
+/// [`Index`]: crate::interface::Index
+/// [`search`]: crate::interface::Index::search
 #[derive(Debug, Clone, PartialEq)]
 pub enum Query<'a> {
-    Single(SubQuery<'a>),
-    Compound(SubQuery<'a>, LogicalCondition, SubQuery<'a>),
-    Nested(Box<Query<'a>>, LogicalCondition, Box<Query<'a>>),
+    Single {
+        boolean: Bool,
+        sub_query: SubQuery<'a>,
+    },
+    Compound {
+        boolean: Bool,
+        a: SubQuery<'a>,
+        op: LogicalCondition,
+        b: SubQuery<'a>,
+    },
+    Nested {
+        boolean: Bool,
+        a: Box<Query<'a>>,
+        op: LogicalCondition,
+        b: Box<Query<'a>>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,10 +67,23 @@ impl Bool {
     /// assert!(!Bool::Is.apply(false));
     /// assert!(!Bool::Not.apply(true));
     /// ```
-    fn apply(&self, boolean: bool) -> bool {
+    pub fn apply(&self, boolean: bool) -> bool {
         match self {
             Bool::Is => boolean,
             Bool::Not => !boolean,
+        }
+    }
+
+    /// Inverts this boolean.
+    ///
+    /// ```
+    /// assert_eq!(Bool::Is.inverse(), Bool::IsNot);
+    /// assert_eq!(Bool::Is.inverse().inverse(), Bool::Is);
+    /// ```
+    pub fn inverse(&self) -> Self {
+        match self {
+            Bool::Is => Bool::Not,
+            Bool::Not => Bool::Is,
         }
     }
 }
@@ -61,7 +92,7 @@ impl Bool {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SubQuery<'a> {
     pub boolean: Bool,
-    /// match the [`TurnQuery`] (either a single turn_number or within a range)
+    /// match the turn number either exactly or to within a range
     pub turn_number: Option<TurnNumberQueryParam>,
     /// match the side
     pub side: Option<SideQueryParam>,
@@ -73,13 +104,10 @@ pub struct SubQuery<'a> {
 
 impl<'a> Query<'a> {
     pub fn new() -> Self {
-        Query::Single(SubQuery {
+        Query::Single {
             boolean: Bool::Is,
-            turn_number: None,
-            side: None,
-            player: None,
-            part: None,
-        })
+            sub_query: SubQuery::default(),
+        }
     }
 }
 
@@ -93,15 +121,15 @@ impl Save {
     #[rustfmt::skip]
     pub fn matches(&self, query: &Query) -> bool {
         match query {
-            Query::Single(sub_query)       => self.matches_sub_query(sub_query),
-            Query::Compound(a, OR, b)      => self.matches_sub_query(a) || self.matches_sub_query(b),
-            Query::Compound(a, OR_NOT, b)  => self.matches_sub_query(a) || !self.matches_sub_query(b),
-            Query::Compound(a, AND, b)     => self.matches_sub_query(a) && self.matches_sub_query(b),
-            Query::Compound(a, AND_NOT, b) => self.matches_sub_query(a) && !self.matches_sub_query(b),
-            Query::Nested(a, OR, b)        => self.matches(a) || self.matches(b),
-            Query::Nested(a, OR_NOT, b)    => self.matches(a) || !self.matches(b),
-            Query::Nested(a, AND, b)       => self.matches(a) && self.matches(b),
-            Query::Nested(a, AND_NOT, b)   => self.matches(a) && !self.matches(b),
+            Query::Single   { boolean, sub_query }         => boolean.apply(self.matches_sub_query(sub_query)),
+            Query::Compound { boolean, a, op: OR, b }      => boolean.apply(self.matches_sub_query(a) || self.matches_sub_query(b)),
+            Query::Compound { boolean, a, op: OR_NOT, b }  => boolean.apply(self.matches_sub_query(a) || !self.matches_sub_query(b)),
+            Query::Compound { boolean, a, op: AND, b }     => boolean.apply(self.matches_sub_query(a) && self.matches_sub_query(b)),
+            Query::Compound { boolean, a, op: AND_NOT, b } => boolean.apply(self.matches_sub_query(a) && !self.matches_sub_query(b)),
+            Query::Nested   { boolean, a, op: OR, b }      => boolean.apply(self.matches(a) || self.matches(b)),
+            Query::Nested   { boolean, a, op: OR_NOT, b }  => boolean.apply(self.matches(a) || !self.matches(b)),
+            Query::Nested   { boolean, a, op: AND, b }     => boolean.apply(self.matches(a) && self.matches(b)),
+            Query::Nested   { boolean, a, op: AND_NOT, b } => boolean.apply(self.matches(a) && !self.matches(b)),
         }
     }
 

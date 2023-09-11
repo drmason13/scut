@@ -2,12 +2,9 @@ use std::cmp::Ordering;
 
 use crate::Turn;
 
-use super::{
-    builder::QueryParam, side::SideQueryParam, Bool, LogicalCondition, Query, SubQuery,
-    TurnNumberQueryParam,
-};
+use super::{builder::QueryParam, Bool, Query, SubQuery};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TurnQueryParam {
     order: Ordering,
     turn: Turn,
@@ -18,15 +15,26 @@ impl<'a> QueryParam<'a> for TurnQueryParam {
     type Value = Turn;
 
     fn matches(&self, value: Self::Value) -> bool {
-        todo!()
+        let matches = match self.order {
+            Ordering::Equal => self.turn == value,
+            Ordering::Greater => self.turn >= value,
+            Ordering::Less => self.turn <= value,
+        };
+        self.boolean.apply(matches)
     }
 
     fn new_sub_query(self) -> SubQuery<'a> {
-        todo!()
+        SubQuery {
+            side: Some(self.turn.side.into()),
+            turn_number: Some(self.turn.number.into()),
+            ..Default::default()
+        }
     }
 
-    fn merge_into(self, sub_query: SubQuery<'a>) -> SubQuery<'a> {
-        todo!()
+    fn merge_into(self, mut sub_query: SubQuery<'a>) -> SubQuery<'a> {
+        sub_query.side = Some(self.turn.side.into());
+        sub_query.turn_number = Some(self.turn.number.into());
+        sub_query
     }
 }
 
