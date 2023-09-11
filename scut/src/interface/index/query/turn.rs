@@ -2,194 +2,212 @@ use std::cmp::Ordering;
 
 use crate::Turn;
 
-use super::{builder::QueryBuildParameter, Query, SubQuery, TurnNumberQuery};
+use super::{
+    builder::QueryParam, side::SideQueryParam, Bool, LogicalCondition, Query, SubQuery,
+    TurnNumberQueryParam,
+};
 
-pub struct TurnQuery {
+#[derive(Debug)]
+pub struct TurnQueryParam {
     order: Ordering,
     turn: Turn,
+    boolean: Bool,
 }
 
-impl<'a> QueryBuildParameter<'a> for TurnQuery {
-    fn new_sub_query(self, boolean: bool) -> SubQuery<'a> {
-        let sub_query = self.turn.side.new_sub_query(boolean);
-        match self.order {
-            Ordering::Equal => TurnNumberQuery::Single(self.turn.number),
-            Ordering::Greater => TurnNumberQuery::LowerBounded(self.turn.number..),
-            Ordering::Less => TurnNumberQuery::UpperBounded(..=self.turn.number),
-        }
-        .merge_into(sub_query, boolean)
+impl<'a> QueryParam<'a> for TurnQueryParam {
+    type Value = Turn;
+
+    fn matches(&self, value: Self::Value) -> bool {
+        todo!()
     }
 
-    fn merge_into(self, sub_query: SubQuery<'a>, boolean: bool) -> SubQuery<'a> {
-        match self.order {
-            Ordering::Equal => TurnNumberQuery::Single(self.turn.number),
-            Ordering::Greater => TurnNumberQuery::LowerBounded(self.turn.number..),
-            Ordering::Less => TurnNumberQuery::UpperBounded(..=self.turn.number),
-        }
-        .merge_into(self.turn.side.merge_into(sub_query, boolean), boolean)
+    fn new_sub_query(self) -> SubQuery<'a> {
+        todo!()
+    }
+
+    fn merge_into(self, sub_query: SubQuery<'a>) -> SubQuery<'a> {
+        todo!()
     }
 }
 
 impl<'a> Query<'a> {
     /// Search for a particular turn
     pub fn turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Equal,
             turn,
         };
-        turn.build(self)
+        turn.apply(self)
     }
 
     /// Or search for a particular turn
     pub fn or_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Equal,
             turn,
         };
-        turn.build_or(self)
+        turn.apply_or(self)
     }
 
     /// And search for a particular turn
     pub fn and_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Equal,
             turn,
         };
-        turn.build_and(self)
+        turn.apply_and(self)
     }
 
     /// Search for any other turn
     pub fn not_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Equal,
             turn,
         };
-        turn.build_not(self)
+        turn.apply(self)
     }
 
     /// Or search for any other turn
     pub fn or_not_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Equal,
             turn,
         };
-        turn.build_or_not(self)
+        turn.apply_or(self)
     }
 
     /// And search for any other turn
     pub fn and_not_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Equal,
             turn,
         };
-        turn.build_and_not(self)
+        turn.apply_and(self)
     }
 
     /// Search for a particular turn, or a later turn from the same side
     pub fn min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Greater,
             turn,
         };
-        turn.build(self)
+        turn.apply(self)
     }
 
     /// Or search for a particular turn, or a later turn from the same side
     pub fn or_min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Greater,
             turn,
         };
-        turn.build_or(self)
+        turn.apply_or(self)
     }
 
     /// And search for a particular turn, or a later turn from the same side
     pub fn and_min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Greater,
             turn,
         };
-        turn.build_and(self)
+        turn.apply_and(self)
     }
 
     /// Search for any other turn / later turn from the same side
     pub fn not_min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Greater,
             turn,
         };
-        turn.build_not(self)
+        turn.apply(self)
     }
 
     /// Or search for any other turn / later turn from the same side
     pub fn or_not_min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Greater,
             turn,
         };
-        turn.build_or_not(self)
+        turn.apply_or(self)
     }
 
     /// And search for any other turn / later turn from the same side
     pub fn and_not_min_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Greater,
             turn,
         };
-        turn.build_and_not(self)
+        turn.apply_and(self)
     }
 
     /// Search for a particular turn, or a later turn from the same side
     pub fn max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Less,
             turn,
         };
-        turn.build(self)
+        turn.apply(self)
     }
 
     /// Or search for a particular turn, or a later turn from the same side
     pub fn or_max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Less,
             turn,
         };
-        turn.build_or(self)
+        turn.apply_or(self)
     }
 
     /// And search for a particular turn, or a later turn from the same side
     pub fn and_max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Is,
             order: Ordering::Less,
             turn,
         };
-        turn.build_and(self)
+        turn.apply_and(self)
     }
 
     /// Search for any other turn / later turn from the same side
     pub fn not_max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Less,
             turn,
         };
-        turn.build_not(self)
+        turn.apply(self)
     }
 
     /// Or search for any other turn / later turn from the same side
     pub fn or_not_max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Less,
             turn,
         };
-        turn.build_or_not(self)
+        turn.apply_or(self)
     }
 
     /// And search for any other turn / later turn from the same side
     pub fn and_not_max_turn(self, turn: Turn) -> Self {
-        let turn = TurnQuery {
+        let turn = TurnQueryParam {
+            boolean: Bool::Not,
             order: Ordering::Less,
             turn,
         };
-        turn.build_and_not(self)
+        turn.apply_and(self)
     }
 }

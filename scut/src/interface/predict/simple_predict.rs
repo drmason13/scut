@@ -189,7 +189,7 @@ impl Predict for SimplePredict {
     #[instrument(skip(self, local, remote), ret, err)]
     fn predict_uploads(
         &self,
-        TurnDetail {
+        &TurnDetail {
             your_turn,
             teammate_turn,
             next_friendly_turn,
@@ -198,7 +198,7 @@ impl Predict for SimplePredict {
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
-        let query = Query::new().min_turn();
+        let query = Query::new().min_turn(your_turn);
 
         let local_saves = local.index().search(&query)?;
         let remote_saves = remote.index().search(&query)?;
@@ -251,7 +251,7 @@ mod tests {
         )?;
 
         assert_eq!(
-            predict.predict_downloads(turn_detail, &mut local_storage, &mut remote_storage)?,
+            predict.predict_downloads(&turn_detail, &mut local_storage, &mut remote_storage)?,
             vec![
                 Save::new(Side::Axis, 1).player("DM"),
                 Save::new(Side::Axis, 2),

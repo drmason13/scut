@@ -27,55 +27,56 @@ pub struct TestCase {
 
 impl TestCase {
     pub fn run(&mut self, idx: usize, pred: SimplePredict) -> anyhow::Result<()> {
-        let turn = pred
-            .predict_turn(
-                self.side,
-                self.player.as_str(),
-                &mut self.local,
-                &mut self.remote,
-            )?
-            .expect("turn should be predicted");
+        todo!()
+        //     let turn = pred
+        //         .predict_turn(
+        //             self.side,
+        //             self.player.as_str(),
+        //             &mut self.local,
+        //             &mut self.remote,
+        //         )?
+        //         .expect("turn should be predicted");
 
-        let actual_autosave = pred.predict_autosave(
-            turn,
-            self.side,
-            self.player.as_str(),
-            &mut self.local,
-            &mut self.remote,
-        )?;
+        //     let actual_autosave = pred.predict_autosave(
+        //         turn,
+        //         self.side,
+        //         self.player.as_str(),
+        //         &mut self.local,
+        //         &mut self.remote,
+        //     )?;
 
-        let actual_downloads = pred.predict_downloads(
-            turn,
-            self.side,
-            self.player.as_str(),
-            &mut self.local,
-            &mut self.remote,
-        )?;
+        //     let actual_downloads = pred.predict_downloads(
+        //         turn,
+        //         self.side,
+        //         self.player.as_str(),
+        //         &mut self.local,
+        //         &mut self.remote,
+        //     )?;
 
-        let actual_uploads = pred.predict_uploads(
-            turn,
-            self.side,
-            self.player.as_str(),
-            &mut self.local,
-            &mut self.remote,
-        )?;
+        //     let actual_uploads = pred.predict_uploads(
+        //         turn,
+        //         self.side,
+        //         self.player.as_str(),
+        //         &mut self.local,
+        //         &mut self.remote,
+        //     )?;
 
-        if let Some(autosave_expected) = self.autosave_expected.as_ref() {
-            assert_eq!(
-                *autosave_expected, actual_autosave,
-                "Predicted wrong autosave for test_case {idx}"
-            );
-        }
-        assert_eq!(
-            self.downloads_expected, actual_downloads,
-            "Predicted wrong downloads for test_case {idx}"
-        );
-        assert_eq!(
-            self.uploads_expected, actual_uploads,
-            "Predicted wrong uploads for test_case {idx}"
-        );
+        //     if let Some(autosave_expected) = self.autosave_expected.as_ref() {
+        //         assert_eq!(
+        //             *autosave_expected, actual_autosave,
+        //             "Predicted wrong autosave for test_case {idx}"
+        //         );
+        //     }
+        //     assert_eq!(
+        //         self.downloads_expected, actual_downloads,
+        //         "Predicted wrong downloads for test_case {idx}"
+        //     );
+        //     assert_eq!(
+        //         self.uploads_expected, actual_uploads,
+        //         "Predicted wrong uploads for test_case {idx}"
+        //     );
 
-        Ok(())
+        //     Ok(())
     }
 }
 

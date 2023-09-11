@@ -1,6 +1,9 @@
-use crate::{Save, Side};
+use crate::Save;
 
-use self::turn_number::TurnNumberQuery;
+use self::{
+    builder::QueryParam, part::PartQueryParam, player::PlayerQueryParam, side::SideQueryParam,
+    turn_number::TurnNumberQueryParam,
+};
 
 mod builder;
 mod part;
@@ -9,41 +12,69 @@ mod side;
 mod turn;
 mod turn_number;
 
+const OR: LogicalCondition = LogicalCondition::Or(Bool::Is);
+const AND: LogicalCondition = LogicalCondition::And(Bool::Is);
+const OR_NOT: LogicalCondition = LogicalCondition::Or(Bool::Not);
+const AND_NOT: LogicalCondition = LogicalCondition::And(Bool::Not);
+
 /// More complex nested compound queries could be supported, but the lifetimes become awkward and Boxes become required and it's not even needed.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Query<'a> {
     Single(SubQuery<'a>),
     Compound(SubQuery<'a>, LogicalCondition, SubQuery<'a>),
+    Nested(Box<Query<'a>>, LogicalCondition, Box<Query<'a>>),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LogicalCondition {
-    And,
-    Or,
+    And(Bool),
+    Or(Bool),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Bool<T> {
-    Is(T),
-    IsNot(T),
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum Bool {
+    #[default]
+    Is,
+    Not,
+}
+
+impl Bool {
+    /// Applies this to an existing `bool`, negating it if we are Bool::Not.
+    ///
+    /// ```
+    /// # use crate::interface::index::query::Bool;
+    /// assert!(Bool::Is.apply(true));
+    /// assert!(Bool::Not.apply(false));
+    ///
+    /// assert!(!Bool::Is.apply(false));
+    /// assert!(!Bool::Not.apply(true));
+    /// ```
+    fn apply(&self, boolean: bool) -> bool {
+        match self {
+            Bool::Is => boolean,
+            Bool::Not => !boolean,
+        }
+    }
 }
 
 /// All the fields to filter [`Save`]s by, each field can be set to `None` to indicate a Wildcard search for that field
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SubQuery<'a> {
+    pub boolean: Bool,
     /// match the [`TurnQuery`] (either a single turn_number or within a range)
-    pub turn_number: Option<Bool<TurnNumberQuery>>,
+    pub turn_number: Option<TurnNumberQueryParam>,
     /// match the side
-    pub side: Option<Bool<Side>>,
+    pub side: Option<SideQueryParam>,
     /// match the player - use `Some(None)` to match saves with no player (i.e. turn start saves)
-    pub player: Option<Bool<Option<&'a str>>>,
+    pub player: Option<PlayerQueryParam<'a>>,
     /// match the part - use `Some(None)` to match saves with no part
-    pub part: Option<Bool<Option<&'a str>>>,
+    pub part: Option<PartQueryParam<'a>>,
 }
 
 impl<'a> Query<'a> {
     pub fn new() -> Self {
         Query::Single(SubQuery {
+            boolean: Bool::Is,
             turn_number: None,
             side: None,
             player: None,
@@ -52,81 +83,60 @@ impl<'a> Query<'a> {
     }
 }
 
-impl<'a> Default for Query<'a> {
+impl Default for Query<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl Save {
+    #[rustfmt::skip]
     pub fn matches(&self, query: &Query) -> bool {
         match query {
-            Query::Single(sub_query) => self.matches_sub_query(sub_query),
-            Query::Compound(a, LogicalCondition::Or, b) => {
-                self.matches_sub_query(a) || self.matches_sub_query(b)
-            }
-            Query::Compound(a, LogicalCondition::And, b) => {
-                self.matches_sub_query(a) && self.matches_sub_query(b)
-            }
+            Query::Single(sub_query)       => self.matches_sub_query(sub_query),
+            Query::Compound(a, OR, b)      => self.matches_sub_query(a) || self.matches_sub_query(b),
+            Query::Compound(a, OR_NOT, b)  => self.matches_sub_query(a) || !self.matches_sub_query(b),
+            Query::Compound(a, AND, b)     => self.matches_sub_query(a) && self.matches_sub_query(b),
+            Query::Compound(a, AND_NOT, b) => self.matches_sub_query(a) && !self.matches_sub_query(b),
+            Query::Nested(a, OR, b)        => self.matches(a) || self.matches(b),
+            Query::Nested(a, OR_NOT, b)    => self.matches(a) || !self.matches(b),
+            Query::Nested(a, AND, b)       => self.matches(a) && self.matches(b),
+            Query::Nested(a, AND_NOT, b)   => self.matches(a) && !self.matches(b),
         }
     }
 
     pub fn matches_sub_query(
         &self,
         SubQuery {
+            boolean,
             turn_number,
             side,
             player,
             part,
         }: &SubQuery,
     ) -> bool {
-        let turn_number_matches = match turn_number {
-            Some(Bool::Is(TurnNumberQuery::Single(turn_number))) => {
-                *turn_number == self.turn.number
-            }
-            Some(Bool::Is(TurnNumberQuery::Inclusive(rng))) => rng.contains(&self.turn.number),
-            Some(Bool::Is(TurnNumberQuery::LowerBounded(rng))) => rng.contains(&self.turn.number),
-            Some(Bool::Is(TurnNumberQuery::UpperBounded(rng))) => rng.contains(&self.turn.number),
-            Some(Bool::Is(TurnNumberQuery::Unbounded(_))) => true,
-            Some(Bool::IsNot(TurnNumberQuery::Single(turn_number))) => {
-                *turn_number != self.turn.number
-            }
-            Some(Bool::IsNot(TurnNumberQuery::Inclusive(rng))) => !rng.contains(&self.turn.number),
-            Some(Bool::IsNot(TurnNumberQuery::LowerBounded(rng))) => {
-                !rng.contains(&self.turn.number)
-            }
-            Some(Bool::IsNot(TurnNumberQuery::UpperBounded(rng))) => {
-                !rng.contains(&self.turn.number)
-            }
-            Some(Bool::IsNot(TurnNumberQuery::Unbounded(_))) => false,
-            None => true,
-        };
+        let turn_number_matches = turn_number
+            .as_ref()
+            .map(|param| param.matches(self.turn.number))
+            .unwrap_or(true);
 
         let side_matches = side
             .as_ref()
-            .map(|sub_query| match sub_query {
-                Bool::Is(s) => *s == self.turn.side,
-                Bool::IsNot(s) => *s != self.turn.side,
-            })
+            .map(|param| param.matches(self.turn.side))
             .unwrap_or(true);
 
         let player_matches = player
             .as_ref()
-            .map(|sub_query| match sub_query {
-                Bool::Is(p) => *p == self.player.as_deref(),
-                Bool::IsNot(p) => *p != self.player.as_deref(),
-            })
+            .map(|param| param.matches(self.player.as_deref()))
             .unwrap_or(true);
 
         let part_matches = part
             .as_ref()
-            .map(|sub_query| match sub_query {
-                Bool::Is(p) => *p == self.part.as_deref(),
-                Bool::IsNot(p) => *p != self.part.as_deref(),
-            })
+            .map(|param| param.matches(self.part.as_deref()))
             .unwrap_or(true);
 
-        turn_number_matches && side_matches && player_matches && part_matches
+        let matches = turn_number_matches && side_matches && player_matches && part_matches;
+        boolean.apply(matches)
     }
 }
 
@@ -134,13 +144,12 @@ impl Save {
 mod tests {
     use crate::interface::index::mock_index::MockIndex;
     use crate::interface::Index;
+    use crate::{Save, Side, Turn};
 
     use super::*;
 
     #[test]
     fn query_works() {
-        use crate::{Save, Side};
-
         let saves = &[
             Save::new(Side::Allies, 1),
             Save::new(Side::Axis, 2),
@@ -177,8 +186,6 @@ mod tests {
 
     #[test]
     fn not_queries_work() {
-        use crate::{Save, Side};
-
         let saves = &[
             Save::new(Side::Allies, 1),
             Save::new(Side::Axis, 2),
@@ -227,8 +234,6 @@ mod tests {
 
     #[test]
     fn compound_queries_work() {
-        use crate::{Save, Side};
-
         let saves = &[
             Save::new(Side::Allies, 1),
             Save::new(Side::Axis, 2),
@@ -305,8 +310,6 @@ mod tests {
 
     #[test]
     fn test_query_in_specific_scenario() -> anyhow::Result<()> {
-        use crate::{Save, Side};
-
         let saves = &[
             Save::new(Side::Axis, 1),
             Save::new(Side::Axis, 1).player("DM"),
@@ -352,5 +355,43 @@ mod tests {
             ]
         );
         Ok(())
+    }
+
+    #[test]
+    fn test_query_by_turn() -> anyhow::Result<()> {
+        let saves = &[
+            Save::new(Side::Allies, 1),
+            Save::new(Side::Axis, 2),
+            Save::new(Side::Allies, 3).player("A"),
+            Save::new(Side::Axis, 4).player("B"),
+            Save::new(Side::Allies, 5).player("A").part("1"),
+        ];
+
+        let mock_index = MockIndex::new(saves);
+
+        for (idx, (query, expected_count)) in [
+            (Query::new().turn(Turn::new(Side::Allies, 3)), 1),
+            (Query::new().turn(Turn::new(Side::Allies, 4)), 0),
+            (Query::new().turn(Turn::new(Side::Axis, 4)), 1),
+            (Query::new().not_turn(Turn::new(Side::Axis, 2)), 4),
+            (Query::new().not_turn(Turn::new(Side::Allies, 2)), 5),
+        ]
+        .iter()
+        .enumerate()
+        {
+            assert_eq!(
+                mock_index.count(query).unwrap(),
+                *expected_count,
+                "test {idx}: query {query:?} had wrong count {expected_count}"
+            );
+        }
+
+        Ok(())
+    }
+
+    fn nested_queries_work() -> anyhow::Result<()> {
+        let turn = Turn::new(Side::Allies, 1);
+        let query = Query::builder();
+        todo!()
     }
 }
