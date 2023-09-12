@@ -1,4 +1,4 @@
-use super::{Bool, LogicalCondition, Query, SubQuery, AND, OR};
+use super::{Bool, LogicalCondition, Query, SubQuery, AND, OR, OR_NOT};
 
 impl<'a> Query<'a> {
     pub fn not(self, other: Query<'a>) -> Self {
@@ -68,54 +68,113 @@ pub(super) trait QueryParam<'a>: Sized {
     /// Apply this search parameter to a query
     fn apply(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(sub_query) => Query::Single(self.merge_into(sub_query)),
-            Query::Compound(sub_query, op, q) => Query::Compound(self.merge_into(sub_query), op, q),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Single {
+                boolean,
+                sub_query: self.merge_into(sub_query),
+            },
+            Query::Compound { boolean, a, op, b } => Query::Compound {
+                boolean,
+                a: self.merge_into(a),
+                op,
+                b,
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 
     /// Or search for a particular part
     fn apply_or(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(q) => Query::Compound(q, OR, self.new_sub_query()),
-            Query::Compound(q, _, sub_query) => Query::Compound(q, OR, self.merge_into(sub_query)),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Compound {
+                boolean,
+                a: sub_query,
+                op: OR,
+                b: self.new_sub_query(),
+            },
+            query @ Query::Compound { boolean, a, op, b } => Query::Nested {
+                boolean,
+                a: Box::new(query),
+                op: OR,
+                b: Box::new(Query::Single {
+                    boolean: Bool::Is,
+                    sub_query: self.new_sub_query(),
+                }),
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 
     /// And search for a particular part
     fn apply_and(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(q) => Query::Compound(q, AND, self.new_sub_query()),
-            Query::Compound(q, _, sub_query) => Query::Compound(q, AND, self.merge_into(sub_query)),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Compound {
+                boolean,
+                a: sub_query,
+                op: AND,
+                b: self.new_sub_query(),
+            },
+            Query::Compound { boolean, a, op, b } => Query::Compound {
+                boolean,
+                a,
+                op: AND,
+                b,
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 
     /// Search for any other part
     fn apply_not(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(sub_query) => Query::Single(self.merge_into(sub_query)),
-            Query::Compound(sub_query, op, q) => Query::Compound(self.merge_into(sub_query), op, q),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Single {
+                boolean,
+                sub_query: self.merge_into(sub_query),
+            },
+            Query::Compound { boolean, a, op, b } => Query::Compound {
+                boolean,
+                a: self.merge_into(a),
+                op,
+                b,
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 
     /// Or search for any other part
     fn apply_or_not(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(q) => Query::Compound(q, OR, self.new_sub_query()),
-            Query::Compound(q, _, sub_query) => Query::Compound(q, OR, self.merge_into(sub_query)),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Compound {
+                boolean,
+                a: sub_query,
+                op: OR_NOT,
+                b: self.new_sub_query(),
+            },
+            Query::Compound { boolean, a, op, b } => Query::Compound {
+                boolean,
+                a,
+                op: OR,
+                b,
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 
     /// And search for any other part
     fn apply_and_not(self, query: Query<'a>) -> Query<'a> {
         match query {
-            Query::Single(q) => Query::Compound(q, AND, self.new_sub_query()),
-            Query::Compound(q, _, sub_query) => Query::Compound(q, AND, self.merge_into(sub_query)),
-            Query::Nested(a, op, b) => todo!(),
+            Query::Single { boolean, sub_query } => Query::Compound {
+                boolean,
+                a,
+                op: AND,
+                b,
+            },
+            Query::Compound { boolean, a, op, b } => Query::Compound {
+                boolean,
+                a,
+                op: AND,
+                b,
+            },
+            Query::Nested { boolean, a, op, b } => todo!(),
         }
     }
 }
