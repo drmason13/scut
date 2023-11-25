@@ -16,10 +16,7 @@ mod ddt;
 use super::{Predict, Prediction};
 
 #[derive(Debug, Default)]
-pub struct SimplePredict {
-    /// Used to help predict if autosave needs uploading
-    predicted_download_count: usize,
-}
+pub struct SimplePredict;
 
 impl Predict for SimplePredict {
     fn predict(
@@ -122,10 +119,6 @@ impl Predict for SimplePredict {
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Option<Save>> {
-        if self.predicted_download_count > 0 {
-            return Ok(None);
-        }
-
         let autosave_exists = local.locate_autosave()?.is_some();
         if !autosave_exists {
             return Ok(None);
@@ -225,9 +218,9 @@ impl Predict for SimplePredict {
         _side: Side,
         _player: &str,
         predicted_downloads: &[Save],
-        predicted_uploads: &[Save],
+        _predicted_uploads: &[Save],
     ) -> bool {
-        predicted_autosave.is_some() && (predicted_downloads.len() + predicted_uploads.len() > 0)
+        predicted_autosave.is_some() && predicted_downloads.is_empty()
     }
 }
 
@@ -239,7 +232,7 @@ mod tests {
 
     #[test]
     fn simple_predict_works() -> anyhow::Result<()> {
-        let predict = SimplePredict::default();
+        let predict = SimplePredict;
 
         let mut remote_storage = MockIndexStorage::new(
             true,
