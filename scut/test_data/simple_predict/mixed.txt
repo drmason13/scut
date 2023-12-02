@@ -1,6 +1,6 @@
 <Axis DM>
 Local:
-autosave = Allies 7, true
+autosave = Allies 7, NewTurnAvailable
 Axis DM 6 A
 Axis DM 6 B
 Axis DM 6

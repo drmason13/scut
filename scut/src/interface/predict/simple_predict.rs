@@ -13,7 +13,7 @@ use crate::{
 #[cfg(test)]
 mod ddt;
 
-use super::{Predict, Prediction};
+use super::{AutosavePrediction, AutosavePredictionReason, Predict, Prediction};
 
 #[derive(Debug, Default)]
 pub struct SimplePredict;
@@ -31,7 +31,7 @@ impl Predict for SimplePredict {
         let uploads = self.predict_uploads(turn, side, player, local, remote)?;
         let downloads = self.predict_downloads(turn, side, player, local, remote)?;
 
-        let autosave = self.predict_autosave(turn, side, player, local, remote)?;
+        let autosave = self.predict_autosave(turn, &downloads, side, player, local, remote)?;
 
         Ok(Prediction {
             autosave,
@@ -114,14 +114,30 @@ impl Predict for SimplePredict {
     fn predict_autosave(
         &self,
         predicted_turn: Turn,
+        predicted_downloads: &[Save],
         side: Side,
         player: &str,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
-    ) -> anyhow::Result<Option<Save>> {
+    ) -> anyhow::Result<AutosavePrediction> {
+        let autosave = Save::new(
+            predicted_turn.side.other_side(),
+            predicted_turn.next().number,
+        );
+
         let autosave_exists = local.locate_autosave()?.is_some();
         if !autosave_exists {
-            return Ok(None);
+            return Ok(AutosavePrediction::NotReady(
+                autosave,
+                AutosavePredictionReason::AutosaveNotAvailable,
+            ));
+        }
+
+        if !predicted_downloads.is_empty() {
+            return Ok(AutosavePrediction::NotReady(
+                autosave,
+                AutosavePredictionReason::NewTurnAvailable,
+            ));
         }
 
         let query = Query::new()
@@ -134,13 +150,33 @@ impl Predict for SimplePredict {
 
         let autosave_uploaded_already = remote.index().count(&query)? >= 1;
         if autosave_uploaded_already {
-            return Ok(None);
+            return Ok(AutosavePrediction::NotReady(
+                autosave,
+                AutosavePredictionReason::AutosaveAlreadyUploaded,
+            ));
         }
 
-        Ok(Some(Save::new(
-            predicted_turn.side.other_side(),
-            predicted_turn.next().number,
-        )))
+        let query = Query::new()
+            .not_player(Some(player))
+            .side(predicted_turn.side)
+            .turn_number(predicted_turn.number)
+            .and(
+                Query::new()
+                    .not_player(None)
+                    .side(predicted_turn.side)
+                    .turn_number(predicted_turn.number),
+            );
+
+        let friendly_turn = remote.index().search(&query)?;
+
+        if friendly_turn.is_empty() {
+            return Ok(AutosavePrediction::NotReady(
+                autosave,
+                AutosavePredictionReason::TeammateSaveNotUploaded,
+            ));
+        }
+
+        Ok(AutosavePrediction::Ready(autosave))
     }
 
     #[instrument(skip(self, local, remote), ret, err)]
@@ -210,35 +246,6 @@ impl Predict for SimplePredict {
             .collect();
 
         Ok(missing_remote_saves)
-    }
-
-    fn should_upload_autosave(
-        &self,
-        predicted_autosave: &Option<Save>,
-        predicted_downloads: &[Save],
-        _predicted_uploads: &[Save],
-        player: &str,
-        _local: &mut dyn LocalStorage,
-        remote: &mut dyn RemoteStorage,
-    ) -> anyhow::Result<bool> {
-        let Some(save) = predicted_autosave else {
-            return Ok(false);
-        };
-
-        let query = Query::new()
-            .not_player(Some(player))
-            .side(save.turn.previous().side)
-            .turn_number(save.turn.previous().number)
-            .and(
-                Query::new()
-                    .not_player(None)
-                    .side(save.turn.previous().side)
-                    .turn_number(save.turn.previous().number),
-            );
-
-        let friendly_turn = remote.index().search(&query)?;
-
-        Ok(predicted_downloads.is_empty() && !friendly_turn.is_empty())
     }
 }
 

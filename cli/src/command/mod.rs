@@ -5,7 +5,7 @@ use anyhow::Context;
 pub use config::ConfigSubcommand;
 use scut_core::{
     error::ErrorSuggestions,
-    interface::{predict::Predict, LocalStorage, RemoteStorage, UserInteraction},
+    interface::{predict::{Predict, AutosavePrediction, AutosavePredictionReason}, LocalStorage, RemoteStorage, UserInteraction},
     Config, Turn,
 };
 
@@ -31,28 +31,55 @@ pub fn run(
 
     let downloads = predictor.predict_downloads(turn, side, player, local, remote)?;
     let uploads = predictor.predict_uploads(turn, side, player, local, remote)?;
-    let mut predicted_autosave = predictor.predict_autosave(turn, side, player, local, remote)?;
-    let should_uploads_autosave = predictor.should_upload_autosave(
-        &predicted_autosave,
-        &downloads,
-        &uploads,
-        player,
-        local,
-        remote,
-    )?;
+    let autosave_prediction =
+        predictor.predict_autosave(turn, &downloads, side, player, local, remote)?;
 
-    if !should_uploads_autosave {
-        predicted_autosave = None;
-    }
-
-    if let Some(ref autosave) = predicted_autosave {
-        if !ui.confirm(
+    let predicted_autosave = match autosave_prediction {
+        AutosavePrediction::Ready(autosave) => if !ui.confirm(
             &format!("Do you want to upload your autosave as: {autosave}?",),
             Some(true),
         ) {
-            predicted_autosave = None;
+            Some(autosave)
+        } else {
+            None
+        },
+        AutosavePrediction::NotReady(autosave, reason) => match reason {
+            AutosavePredictionReason::AutosaveAlreadyUploaded => {
+                if !ui.confirm(
+                    &format!("⚠️ {autosave} has already been uploaded. Do you want to overwrite it with your autosave? ⚠️",),
+                    Some(false),
+                ) {
+                    Some(autosave)
+                } else {
+                    None
+                }
+            },
+            AutosavePredictionReason::TeammateSaveNotUploaded => {
+                if !ui.confirm(
+                    "⚠️ Your teammate has not uploaded yet. Do you want to upload your autosave anyway? ⚠️",
+                    Some(false),
+                ) {
+                    Some(autosave)
+                } else {
+                    None
+                }
+            },
+            AutosavePredictionReason::NewTurnAvailable => {
+                if !ui.confirm(
+                    "⚠️ There is a new turn to download. Do you want to upload your autosave anyway? ⚠️",
+                    Some(false),
+                ) {
+                    Some(autosave)
+                } else {
+                    None
+                }
+                
+            },
+            AutosavePredictionReason::AutosaveNotAvailable => {
+                None
+            },
         }
-    }
+    };
 
     let mut confirmation_prompt = String::new();
 

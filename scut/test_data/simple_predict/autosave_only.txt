@@ -1,6 +1,6 @@
 <Axis DM>
 Local:
-autosave = Allies 7, true
+autosave = Allies 7, Ready
 Axis 6
 Axis DM 6 A
 Axis DM 6 B
@@ -33,7 +33,7 @@ Uploads:
 
 <Axis DM>
 Local:
-autosave = Allies 7, false
+autosave = Allies 7, AutosaveAlreadyUploaded
 Axis 6
 Axis DM 6 A
 Axis DM 6 B
@@ -66,7 +66,7 @@ Uploads:
 
 <Axis DM>
 Local:
-autosave = Allies 1, true
+autosave = Allies 1, Ready
 Axis DM 1
 Axis DG 1
 
@@ -80,7 +80,30 @@ Uploads:
 
 <Axis DM>
 Local:
-autosave = Allies 2, true
+autosave = Allies 2, Ready
+Axis DM 1
+Axis DG 1
+Axis 2
+Axis DM 2
+Axis DG 2
+
+Remote:
+Allies 1
+Allies GM 1
+Allies TG 1
+Axis DM 1
+Axis DG 1
+Axis 2
+Axis DG 2
+
+Downloads:
+
+Uploads:
+Axis DM 2
+
+<Axis DM>
+Local:
+autosave = Allies 2, TeammateSaveNotUploaded
 Axis DM 1
 Axis DG 1
 Axis 2
@@ -95,9 +118,9 @@ Axis DM 1
 Axis DG 1
 Axis 2
 Axis DM 2
-Axis DG 2
 
 Downloads:
 
 Uploads:
+Axis DG 2
 

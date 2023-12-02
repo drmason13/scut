@@ -1,6 +1,6 @@
 <Axis DM>
 Local:
-autosave = Allies 2, true
+autosave = Allies 2, NewTurnAvailable
 Axis 1 DM
 
 Remote:
@@ -20,7 +20,7 @@ Uploads:
 
 <Axis DG>
 Local:
-autosave = Allies 2, true
+autosave = Allies 2, NewTurnAvailable
 Axis 1 DM
 
 Remote:
@@ -39,7 +39,7 @@ Uploads:
 
 <Allies TG>
 Local:
-autosave = Axis 3, true
+autosave = Axis 3, NewTurnAvailable
 Allies 1 TG
 
 Remote:
@@ -58,7 +58,7 @@ Uploads:
 
 <Allies GM>
 Local:
-autosave = Axis 3, true
+autosave = Axis 3, NewTurnAvailable
 
 Remote:
 Axis 1
@@ -76,7 +76,7 @@ Uploads:
 
 <Allies GM>
 Local:
-autosave = Axis 2, true
+autosave = Axis 2, NewTurnAvailable
 
 Remote:
 Axis 1
