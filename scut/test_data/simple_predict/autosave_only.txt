@@ -14,6 +14,7 @@ Axis DG 7 B
 Axis DG 7
 
 Remote:
+Allies 6
 Axis 6
 Axis DM 6 A
 Axis DM 6 B

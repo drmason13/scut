@@ -215,12 +215,30 @@ impl Predict for SimplePredict {
     fn should_upload_autosave(
         &self,
         predicted_autosave: &Option<Save>,
-        _side: Side,
-        _player: &str,
         predicted_downloads: &[Save],
         _predicted_uploads: &[Save],
-    ) -> bool {
-        predicted_autosave.is_some() && predicted_downloads.is_empty()
+        player: &str,
+        _local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<bool> {
+        let Some(save) = predicted_autosave else {
+            return Ok(false);
+        };
+
+        let query = Query::new()
+            .not_player(Some(player))
+            .side(save.turn.previous().side)
+            .turn_number(save.turn.previous().number)
+            .and(
+                Query::new()
+                    .not_player(None)
+                    .side(save.turn.previous().side)
+                    .turn_number(save.turn.previous().number),
+            );
+
+        let friendly_turn = remote.index().search(&query)?;
+
+        Ok(predicted_downloads.is_empty() && !friendly_turn.is_empty())
     }
 }
 
@@ -266,10 +284,7 @@ mod tests {
                 &mut local_storage,
                 &mut remote_storage
             )?,
-            vec![
-                // Save::new(Side::Axis, 1).player("DM"),  // we don't predict downloading our own previous turns anymore
-                Save::new(Side::Axis, 2),
-            ]
+            vec![Save::new(Side::Axis, 2),]
         );
 
         Ok(())

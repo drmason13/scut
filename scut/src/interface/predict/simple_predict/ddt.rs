@@ -58,8 +58,24 @@ impl TestCase {
             &mut self.remote,
         )?;
 
-        if let Some((expected_autosave, is_some)) = self.autosave_expected.as_ref() {
-            if *is_some {
+        let actual_should_upload_autosave = pred.should_upload_autosave(
+            &actual_autosave,
+            &actual_downloads,
+            &actual_uploads,
+            &self.player,
+            &mut self.local,
+            &mut self.remote,
+        )?;
+
+        if let Some((expected_autosave, expected_should_upload_autosave)) =
+            self.autosave_expected.as_ref()
+        {
+            assert_eq!(
+                actual_should_upload_autosave, *expected_should_upload_autosave,
+                "Predicted wrong should upload autosave for test_case {idx}"
+            );
+
+            if *expected_should_upload_autosave {
                 assert_eq!(
                     Some(expected_autosave),
                     actual_autosave.as_ref(),

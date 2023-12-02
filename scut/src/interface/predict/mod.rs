@@ -71,9 +71,10 @@ pub trait Predict {
     fn should_upload_autosave(
         &self,
         predicted_autosave: &Option<Save>,
-        side: Side,
-        player: &str,
         predicted_downloads: &[Save],
         predicted_uploads: &[Save],
-    ) -> bool;
+        player: &str,
+        local: &mut dyn LocalStorage,
+        remote: &mut dyn RemoteStorage,
+    ) -> anyhow::Result<bool>;
 }

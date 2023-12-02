@@ -32,8 +32,14 @@ pub fn run(
     let downloads = predictor.predict_downloads(turn, side, player, local, remote)?;
     let uploads = predictor.predict_uploads(turn, side, player, local, remote)?;
     let mut predicted_autosave = predictor.predict_autosave(turn, side, player, local, remote)?;
-    let should_uploads_autosave =
-        predictor.should_upload_autosave(&predicted_autosave, side, player, &downloads, &uploads);
+    let should_uploads_autosave = predictor.should_upload_autosave(
+        &predicted_autosave,
+        &downloads,
+        &uploads,
+        player,
+        local,
+        remote,
+    )?;
 
     if !should_uploads_autosave {
         predicted_autosave = None;
