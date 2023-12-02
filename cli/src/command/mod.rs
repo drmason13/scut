@@ -9,7 +9,7 @@ use scut_core::{
         predict::{AutosavePrediction, AutosavePredictionReason, Predict},
         LocalStorage, RemoteStorage, UserInteraction,
     },
-    Config, Turn,
+    Config,
 };
 
 /// Runs scut, which will predict what downloads and uploads are desired, confirms with the user and then does them!
@@ -26,18 +26,10 @@ pub fn run(
 
     let side = config.side;
     let player = config.player.as_str();
-    let turn = if let Some(turn_number) = turn_override {
-        Turn::new(config.side, turn_number)
-    } else {
-        predictor.predict_turn(side, player, local, remote)?
-    };
 
-    let downloads = predictor.predict_downloads(turn, side, player, local, remote)?;
-    let uploads = predictor.predict_uploads(turn, side, player, local, remote)?;
-    let autosave_prediction =
-        predictor.predict_autosave(turn, &downloads, side, player, local, remote)?;
+    let prediction = predictor.predict(side, player, turn_override, local, remote)?;
 
-    let predicted_autosave = match autosave_prediction {
+    let predicted_autosave = match prediction.autosave {
         AutosavePrediction::Ready(autosave) => if !ui.confirm(
             &format!("Do you want to upload your autosave as: {autosave}?",),
             Some(true),
@@ -65,9 +57,9 @@ pub fn run(
 
     let mut confirmation_prompt = String::new();
 
-    if !downloads.is_empty() {
+    if !prediction.downloads.is_empty() {
         writeln!(confirmation_prompt, "Will download:")?;
-        for download in downloads.iter() {
+        for download in prediction.downloads.iter() {
             writeln!(
                 confirmation_prompt,
                 "  ⬇️ {download}{}",
@@ -80,9 +72,9 @@ pub fn run(
         }
     }
 
-    if !uploads.is_empty() {
+    if !prediction.uploads.is_empty() {
         writeln!(confirmation_prompt, "Will upload:")?;
-        for upload in uploads.iter() {
+        for upload in prediction.uploads.iter() {
             writeln!(confirmation_prompt, "  ↗️ {upload}")?;
         }
     }
@@ -108,12 +100,12 @@ pub fn run(
         return Ok(());
     }
 
-    for save in downloads.iter() {
+    for save in prediction.downloads.iter() {
         let download_path = local.location();
         remote.download(save, download_path)?;
     }
 
-    for save in uploads.iter() {
+    for save in prediction.uploads.iter() {
         let local_path = local.locate_save(save)
             .with_context(|| format!("No save file for '{}' exists in your local saved games folder!", &save))?
             .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save '{}', but the corresponding file was not found!", &save))
