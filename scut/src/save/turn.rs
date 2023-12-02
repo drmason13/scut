@@ -28,19 +28,18 @@ impl Turn {
     }
 }
 
-impl PartialOrd for Turn {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.number.partial_cmp(&other.number) {
-            Some(Ordering::Equal) => self.side.partial_cmp(&other.side),
-            Some(order) => Some(order),
-            None => unreachable!(),
+impl Ord for Turn {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.number.cmp(&other.number) {
+            Ordering::Equal => self.side.cmp(&other.side),
+            order => order,
         }
     }
 }
 
-impl Ord for Turn {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+impl PartialOrd for Turn {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

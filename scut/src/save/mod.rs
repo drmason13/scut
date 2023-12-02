@@ -90,23 +90,23 @@ pub fn path_to_save(path: &Path) -> Option<Save> {
     Save::try_from(path).ok()
 }
 
-impl PartialOrd for Save {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.turn.partial_cmp(&other.turn) {
-            Some(Ordering::Equal) => {}
+impl Ord for Save {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.turn.cmp(&other.turn) {
+            Ordering::Equal => {}
             ord => return ord,
         }
         match (&self.part, &other.part) {
-            (Some(a), Some(b)) => a.partial_cmp(b),
-            (None, Some(_)) => Some(Ordering::Greater),
-            (Some(_), None) => Some(Ordering::Less),
-            (None, None) => Some(Ordering::Equal),
+            (Some(a), Some(b)) => a.cmp(b),
+            (None, Some(_)) => Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (None, None) => Ordering::Equal,
         }
     }
 }
 
-impl Ord for Save {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+impl PartialOrd for Save {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }

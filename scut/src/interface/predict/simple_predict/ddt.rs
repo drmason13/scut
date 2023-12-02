@@ -8,7 +8,6 @@ use crate::{
         storage::mock_index_storage::MockIndexStorage,
     },
     save::{parse_save, parse_side},
-    SaveOrAutosave,
 };
 
 use super::*;
@@ -20,7 +19,7 @@ pub struct TestCase {
     remote: MockIndexStorage,
     side: Side,
     player: String,
-    autosave_expected: Option<(Save, bool)>,
+    expected_autosave_prediction: AutosavePrediction,
     downloads_expected: Vec<Save>,
     uploads_expected: Vec<Save>,
 }
@@ -28,14 +27,6 @@ pub struct TestCase {
 impl TestCase {
     pub fn run(&mut self, idx: usize, pred: SimplePredict) -> anyhow::Result<()> {
         let turn = pred.predict_turn(
-            self.side,
-            self.player.as_str(),
-            &mut self.local,
-            &mut self.remote,
-        )?;
-
-        let actual_autosave = pred.predict_autosave(
-            turn,
             self.side,
             self.player.as_str(),
             &mut self.local,
@@ -58,36 +49,19 @@ impl TestCase {
             &mut self.remote,
         )?;
 
-        let actual_should_upload_autosave = pred.should_upload_autosave(
-            &actual_autosave,
+        let actual_autosave_prediction = pred.predict_autosave(
+            turn,
             &actual_downloads,
-            &actual_uploads,
-            &self.player,
+            self.side,
+            self.player.as_str(),
             &mut self.local,
             &mut self.remote,
         )?;
 
-        if let Some((expected_autosave, expected_should_upload_autosave)) =
-            self.autosave_expected.as_ref()
-        {
-            assert_eq!(
-                actual_should_upload_autosave, *expected_should_upload_autosave,
-                "Predicted wrong should upload autosave for test_case {idx}"
-            );
-
-            if *expected_should_upload_autosave {
-                assert_eq!(
-                    Some(expected_autosave),
-                    actual_autosave.as_ref(),
-                    "Predicted wrong autosave for test_case {idx}"
-                );
-            } else {
-                assert_eq!(
-                    None, actual_autosave,
-                    "Predicted wrong autosave for test_case {idx}"
-                );
-            }
-        }
+        assert_eq!(
+            self.expected_autosave_prediction, actual_autosave_prediction,
+            "Predicted wrong autosave for test_case {idx}"
+        );
 
         assert_eq!(
             self.downloads_expected, actual_downloads,
@@ -126,22 +100,26 @@ pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> 
         .then_skip(ws().optional())
         .parse(input)?;
 
-    let bool = token("true")
-        .map(|_| true)
-        .or(token("false").map(|_| false));
+    let autosave_prediction_reason = token("AutosaveAlreadyUploaded")
+        .map(|_| AutosavePredictionReason::AutosaveAlreadyUploaded)
+        .or(token("TeammateSaveNotUploaded")
+            .map(|_| AutosavePredictionReason::TeammateSaveNotUploaded))
+        .or(token("NewTurnAvailable").map(|_| AutosavePredictionReason::NewTurnAvailable))
+        .or(token("AutosaveNotAvailable").map(|_| AutosavePredictionReason::AutosaveNotAvailable));
 
-    let autosave = token("autosave").map(|_| SaveOrAutosave::Autosave);
-    let autosave_expected = token(",").then(ws().optional()).skip_then(bool);
-    let save_and_autosave_expected = parse_save.then(autosave_expected);
+    let comma = || token(",").then(ws().optional());
 
-    let ((autosave, autosave_expected), remaining) = token("Local:")
+    let autosave_prediction = parse_save
+        .then(comma().skip_then(autosave_prediction_reason))
+        .map(|(save, reason)| AutosavePrediction::NotReady(save, reason))
+        .or(parse_save
+            .then_skip(comma().then(token("Ready")))
+            .map(AutosavePrediction::Ready));
+
+    let (expected_autosave_prediction, remaining) = token("Local:")
         .then(ws().many(..5))
-        .skip_then(
-            autosave
-                .optional()
-                .then_skip(token(" = "))
-                .then(save_and_autosave_expected.optional()),
-        )
+        .then(token("autosave = "))
+        .skip_then(autosave_prediction)
         .parse(remaining)?;
 
     let parse_saves = || {
@@ -155,13 +133,12 @@ pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> 
     let (downloads_expected, rem) = token("Downloads:").skip_then(parse_saves()).parse(rem)?;
     let (uploads_expected, rem) = token("Uploads:").skip_then(parse_saves()).parse(rem)?;
 
-    let has_autosave_file = autosave.is_some();
-    let local = MockIndexStorage::new(has_autosave_file, local_saves);
-    let remote = MockIndexStorage::new(has_autosave_file, remote_saves);
+    let local = MockIndexStorage::new(true, local_saves);
+    let remote = MockIndexStorage::new(true, remote_saves);
 
     Ok((
         TestCase {
-            autosave_expected,
+            expected_autosave_prediction,
             local,
             remote,
             side,
