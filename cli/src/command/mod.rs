@@ -5,7 +5,10 @@ use anyhow::Context;
 pub use config::ConfigSubcommand;
 use scut_core::{
     error::ErrorSuggestions,
-    interface::{predict::{Predict, AutosavePrediction, AutosavePredictionReason}, LocalStorage, RemoteStorage, UserInteraction},
+    interface::{
+        predict::{AutosavePrediction, AutosavePredictionReason, Predict},
+        LocalStorage, RemoteStorage, UserInteraction,
+    },
     Config, Turn,
 };
 
@@ -45,7 +48,7 @@ pub fn run(
         },
         AutosavePrediction::NotReady(autosave, reason) => match reason {
             AutosavePredictionReason::AutosaveAlreadyUploaded => {
-                if !ui.confirm(
+                if ui.confirm(
                     &format!("⚠️ {autosave} has already been uploaded. Do you want to overwrite it with your autosave? ⚠️",),
                     Some(false),
                 ) {
@@ -54,30 +57,9 @@ pub fn run(
                     None
                 }
             },
-            AutosavePredictionReason::TeammateSaveNotUploaded => {
-                if !ui.confirm(
-                    "⚠️ Your teammate has not uploaded yet. Do you want to upload your autosave anyway? ⚠️",
-                    Some(false),
-                ) {
-                    Some(autosave)
-                } else {
-                    None
-                }
-            },
-            AutosavePredictionReason::NewTurnAvailable => {
-                if !ui.confirm(
-                    "⚠️ There is a new turn to download. Do you want to upload your autosave anyway? ⚠️",
-                    Some(false),
-                ) {
-                    Some(autosave)
-                } else {
-                    None
-                }
-                
-            },
-            AutosavePredictionReason::AutosaveNotAvailable => {
-                None
-            },
+            AutosavePredictionReason::TeammateSaveNotUploaded => None,
+            AutosavePredictionReason::NewTurnAvailable => None,
+            AutosavePredictionReason::AutosaveNotAvailable => None,
         }
     };
 
