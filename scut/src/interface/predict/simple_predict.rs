@@ -23,10 +23,13 @@ impl Predict for SimplePredict {
         &self,
         side: Side,
         player: &str,
+        turn_override: Option<u32>,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Prediction> {
-        let turn = self.predict_turn(side, player, local, remote)?;
+        let turn = turn_override
+            .map(|turn_number| Turn::new(side, turn_number))
+            .unwrap_or(self.predict_turn(side, player, local, remote)?);
 
         let uploads = self.predict_uploads(turn, side, player, local, remote)?;
         let downloads = self.predict_downloads(turn, side, player, local, remote)?;

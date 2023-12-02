@@ -45,6 +45,7 @@ pub trait Predict {
         &self,
         side: Side,
         player: &str,
+        turn_override: Option<u32>,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Prediction>;
