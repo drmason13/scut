@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use parsely::{combinator::pad, result_ext::*, token, until, ws, Lex, Parse, ParseResult};
 
 use crate::{
+    config::TeamNames,
     interface::{
         file_system::local_file_system::LocalFileSystem,
         storage::mock_index_storage::MockIndexStorage,
@@ -89,10 +90,12 @@ impl TestCase {
 /// <uploads expected>
 /// ```
 pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
+    let team_names = TeamNames::default();
+
     let test_side_player_marker = pad(
         token("<"),
         token(">"),
-        parse_side
+        parse_side(&team_names)
             .then_skip(ws())
             .then(until(">").map(|s| String::from(s))),
     );
@@ -109,10 +112,10 @@ pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
 
     let comma = || token(",").then(ws().optional());
 
-    let autosave_prediction = parse_save
+    let autosave_prediction = parse_save(&team_names)
         .then(comma().skip_then(autosave_prediction_reason))
         .map(|(save, reason)| AutosavePrediction::NotReady(save, reason))
-        .or(parse_save
+        .or(parse_save(&team_names)
             .then_skip(comma().then(token("Ready")))
             .map(AutosavePrediction::Ready));
 
@@ -124,7 +127,7 @@ pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
 
     let parse_saves = || {
         ws().optional()
-            .skip_then(parse_save.then_skip(ws()).many(..9999))
+            .skip_then(parse_save(&team_names).then_skip(ws()).many(..9999))
             .then_skip(ws().optional())
     };
 

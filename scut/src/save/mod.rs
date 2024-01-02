@@ -5,9 +5,12 @@ mod turn;
 
 use std::{cmp::Ordering, fmt, path::Path};
 
+use crate::config::TeamNames;
+
 pub use self::parse::*;
 
 pub use autosave::SaveOrAutosave;
+use parsely::Parse;
 pub use side::Side;
 pub use turn::Turn;
 
@@ -71,23 +74,13 @@ impl fmt::Display for Save {
     }
 }
 
-impl TryFrom<&Path> for Save {
-    type Error = ParseSaveError;
+pub fn path_to_save(path: &Path, team_names: &TeamNames) -> Option<Save> {
+    let file_name = path.file_name()?.to_string_lossy();
+    let save_name = file_name.split('.').next()?;
 
-    fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        value
-            .file_name()
-            .ok_or(ParseSaveError)?
-            .to_string_lossy()
-            .split('.')
-            .next()
-            .ok_or(ParseSaveError)?
-            .parse()
-    }
-}
+    let (save, _) = parse_save(team_names).then_end().parse(save_name).ok()?;
 
-pub fn path_to_save(path: &Path) -> Option<Save> {
-    Save::try_from(path).ok()
+    Some(save)
 }
 
 impl Ord for Save {

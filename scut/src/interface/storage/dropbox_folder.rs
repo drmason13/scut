@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
+use crate::config::TeamNames;
 use crate::interface::index::IterIndex;
 use crate::interface::{Compression, FileSystem, RemoteStorage};
 use crate::save::path_to_save;
@@ -15,6 +16,7 @@ pub struct DropboxFolder {
     saves: HashMap<Save, PathBuf>,
     file_system: Box<dyn FileSystem>,
     compression: Box<dyn Compression>,
+    team_names: TeamNames,
 }
 
 impl DropboxFolder {
@@ -22,12 +24,14 @@ impl DropboxFolder {
         location: PathBuf,
         file_system: Box<dyn FileSystem>,
         compression: Box<dyn Compression>,
+        team_names: TeamNames,
     ) -> anyhow::Result<Self> {
         let mut folder = DropboxFolder {
             location,
             saves: HashMap::new(),
             compression,
             file_system,
+            team_names,
         };
 
         folder.refresh_saves()?;
@@ -84,7 +88,7 @@ impl DropboxFolder {
 
         let saves = all_files
             .into_iter()
-            .filter_map(|path| path_to_save(&path).map(|save| (save, path)));
+            .filter_map(|path| path_to_save(&path, &self.team_names).map(|save| (save, path)));
 
         self.saves = saves.collect();
 
@@ -153,6 +157,7 @@ mod tests {
             PathBuf::from("/remote"),
             Box::new(mock_file_system),
             Box::new(MockCompression::new()),
+            TeamNames::default(),
         )?;
 
         dropbox.download(

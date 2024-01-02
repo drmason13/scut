@@ -19,6 +19,7 @@ pub(crate) fn ready_storage(config: Config) -> anyhow::Result<ReadiedStorage> {
         config.dropbox.clone(),
         Box::new(LocalFileSystem::new()),
         Box::new(compression),
+        config.team_names.clone(),
     )
     .with_context(|| {
         format!(
@@ -28,15 +29,18 @@ pub(crate) fn ready_storage(config: Config) -> anyhow::Result<ReadiedStorage> {
     })
     .suggest("Use `scut config edit` to review and update your config")?;
 
-    let local_storage =
-        GameSavesFolder::new(config.saves.clone(), Box::new(LocalFileSystem::new()))
-            .with_context(|| {
-                format!(
-                    "failed to load game saves folder with path '{}'",
-                    config.saves.display()
-                )
-            })
-            .suggest("Use `scut config edit` to review and update your config")?;
+    let local_storage = GameSavesFolder::new(
+        config.saves.clone(),
+        Box::new(LocalFileSystem::new()),
+        config.team_names.clone(),
+    )
+    .with_context(|| {
+        format!(
+            "failed to load game saves folder with path '{}'",
+            config.saves.display()
+        )
+    })
+    .suggest("Use `scut config edit` to review and update your config")?;
 
     Ok((Box::new(local_storage), Box::new(remote_storage), config))
 }

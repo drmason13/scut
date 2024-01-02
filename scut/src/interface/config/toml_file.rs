@@ -4,6 +4,7 @@ use std::{path::PathBuf, time::Duration};
 use anyhow::Context;
 use tracing::instrument;
 
+use crate::config::TeamNames;
 use crate::error::ErrorSuggestions;
 use crate::interface::file_system::is_not_found_err;
 use crate::interface::{
@@ -94,6 +95,20 @@ impl TomlFileConfig {
             .join(r"Documents\My Games\Strategic Command WWII - World at War\Multiplayer\Hotseat");
         let seven_zip_path = PathBuf::from(r"C:\Program Files\7-Zip\");
 
+        let team_names = query_and_parse(
+            "What teams will you be playing with? (default: Axis,Allies)",
+            ui,
+        )
+        .map(|teams: String| {
+            if let Some(idx) = teams.find(',') {
+                let (a, b) = teams.split_at(idx);
+                TeamNames::new((a.to_string(), b.to_string()))
+            } else {
+                TeamNames::default()
+            }
+        })
+        .unwrap_or_else(TeamNames::default);
+
         let side = query_and_parse("What side will you be playing as?", ui)
             .ok_or_else(|| anyhow::anyhow!("no side provided"))
             .suggest("Decide which side to play as and try again")?;
@@ -111,6 +126,7 @@ impl TomlFileConfig {
             side,
             player,
             turn,
+            team_names,
         })
     }
 }

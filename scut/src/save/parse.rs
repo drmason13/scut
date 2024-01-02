@@ -1,26 +1,16 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
 
 use parsely::*;
 
-use crate::Turn;
+use crate::{config::TeamNames, Turn};
 
 use super::{Save, Side};
 
-impl FromStr for Save {
-    type Err = ParseSaveError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (save, _) = parse_save(s).map_err(|_| ParseSaveError)?;
-        Ok(save)
-    }
-}
-
-pub fn parse_side(input: &str) -> ParseResult<'_, Side> {
-    "Allies"
-        .or("allies")
-        .map(|_| Side::Allies)
-        .or("Axis".or("axis").map(|_| Side::Axis))
-        .parse(input)
+pub fn parse_side(team_names: &TeamNames) -> impl Parse<Output = Side> + '_ {
+    switch([
+        (itoken(&team_names.allies), Side::Allies),
+        (itoken(&team_names.axis), Side::Axis),
+    ])
 }
 
 pub fn parse_player(input: &str) -> ParseResult<'_, String> {
@@ -42,10 +32,10 @@ pub fn parse_part(input: &str) -> ParseResult<'_, String> {
         .parse(remaining)
 }
 
-pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
+pub fn parse_save(team_names: &TeamNames) -> impl Parse<Output = Save> + '_ {
     // Side Start Turn
     // "Axis[ ]start 123";
-    let side_start_turn = parse_side
+    let side_start_turn = parse_side(team_names)
         .then_skip(' '.many(0..))
         .then_skip(itoken("start"))
         .then_skip(' '.many(0..))
@@ -58,7 +48,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
 
     // Side[ ]Player[ ]Turn
     // "Axis DM 123";
-    let side_player_turn = parse_side
+    let side_player_turn = parse_side(team_names)
         .then_skip(' '.many(0..))
         .then(parse_player)
         .then_skip(' '.many(0..))
@@ -73,7 +63,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
 
     // Side[ ]Turn[ ]Player
     // "Axis 123 DM";
-    let side_turn_player = parse_side
+    let side_turn_player = parse_side(team_names)
         .then_skip(' '.many(0..))
         .then(parse_turn)
         .then_skip(' '.many(0..))
@@ -88,7 +78,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
 
     // Side[ ]Turn
     // "Axis 123";
-    let side_turn = parse_side
+    let side_turn = parse_side(team_names)
         .then_skip(' '.many(0..))
         .then(parse_turn)
         .map(|(side, turn)| Save {
@@ -101,7 +91,6 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
         .or(side_turn_player)
         .or(side_player_turn)
         .or(side_turn)
-        .parse(input)
 }
 
 #[derive(Debug, PartialEq)]

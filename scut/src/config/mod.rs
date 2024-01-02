@@ -17,9 +17,30 @@ pub struct Config {
     pub side: Side,
     pub player: String,
     pub turn: u32,
-
+    pub team_names: TeamNames,
     pub dropbox: PathBuf,
     pub seven_zip_path: PathBuf,
+}
+
+/// Used to determine how to parse saves at runtime
+///
+/// Play with "Axis" first and "Allies" second by default, but you can play with whatever team names you like!
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TeamNames {
+    pub axis: String,
+    pub allies: String,
+}
+
+impl TeamNames {
+    pub fn new((axis, allies): (String, String)) -> Self {
+        TeamNames { axis, allies }
+    }
+}
+
+impl Default for TeamNames {
+    fn default() -> Self {
+        TeamNames::new(("Axis".to_string(), "Allies".to_string()))
+    }
 }
 
 impl Config {

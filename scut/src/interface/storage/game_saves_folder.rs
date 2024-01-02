@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
+use crate::config::TeamNames;
 use crate::interface::index::IterIndex;
 use crate::interface::{FileSystem, LocalStorage};
 use crate::save::{path_to_save, SaveOrAutosave};
@@ -14,15 +15,21 @@ pub struct GameSavesFolder {
     saves: HashMap<Save, PathBuf>,
     autosave: Option<PathBuf>,
     file_system: Box<dyn FileSystem>,
+    team_names: TeamNames,
 }
 
 impl GameSavesFolder {
-    pub fn new(location: PathBuf, file_system: Box<dyn FileSystem>) -> anyhow::Result<Self> {
+    pub fn new(
+        location: PathBuf,
+        file_system: Box<dyn FileSystem>,
+        team_names: TeamNames,
+    ) -> anyhow::Result<Self> {
         let mut folder = GameSavesFolder {
             location,
             saves: HashMap::new(),
             autosave: None,
             file_system,
+            team_names,
         };
 
         folder.refresh_saves()?;
@@ -82,7 +89,7 @@ impl GameSavesFolder {
 
         let saves = all_files
             .into_iter()
-            .filter_map(|path| path_to_save(&path).map(|save| (save, path)));
+            .filter_map(|path| path_to_save(&path, &self.team_names).map(|save| (save, path)));
 
         let autosave_path = match self.autosave.take() {
             None => self.location.join("autosave.sav"),
@@ -154,8 +161,12 @@ mod tests {
     "})
         .unwrap();
 
-        let mut folder =
-            GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
+        let mut folder = GameSavesFolder::new(
+            PathBuf::from("saves"),
+            Box::new(mock_file_system),
+            TeamNames::default(),
+        )
+        .unwrap();
         assert_eq!(
             folder
                 .locate_save(&Save::new(Side::Axis, 1).player("DM"))
@@ -175,8 +186,12 @@ mod tests {
     "})
         .unwrap();
 
-        let mut folder =
-            GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
+        let mut folder = GameSavesFolder::new(
+            PathBuf::from("saves"),
+            Box::new(mock_file_system),
+            TeamNames::default(),
+        )
+        .unwrap();
         let actual = folder
             .locate_save(&Save::new(Side::Axis, 1).player("DM"))
             .expect("save should exist");
@@ -195,7 +210,11 @@ mod tests {
     "})
         .unwrap();
 
-        let folder = GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system));
+        let folder = GameSavesFolder::new(
+            PathBuf::from("saves"),
+            Box::new(mock_file_system),
+            TeamNames::default(),
+        );
 
         assert!(folder.is_err());
     }
