@@ -77,7 +77,7 @@ pub fn run(
     }
 
     if let Some(autosave) = match prediction.autosave {
-        AutosavePrediction::Ready(autosave) => if !ui.confirm(
+        AutosavePrediction::Ready(autosave) => if ui.confirm(
             &format!("Do you want to upload your autosave as: {autosave}?",),
             Some(true),
         ) {
