@@ -561,6 +561,11 @@ name = "parsely"
 version = "0.1.0"
 
 [[package]]
+name = "parsely"
+version = "0.1.0"
+source = "git+https://github.com/drmason13/parsely?branch=develop#2f631b5e6b9c4efde97946d4d2a7260758c4480a"
+
+[[package]]
 name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -722,7 +727,7 @@ dependencies = [
  "dropbox-dir",
  "edit",
  "either",
- "parsely",
+ "parsely 0.1.0",
  "scut_core",
  "serde",
  "tempfile",
@@ -743,7 +748,7 @@ dependencies = [
  "dirs 5.0.1",
  "dropbox-dir",
  "indoc",
- "parsely",
+ "parsely 0.1.0 (git+https://github.com/drmason13/parsely?branch=develop)",
  "paste",
  "pretty_assertions",
  "serde",
