@@ -17,9 +17,10 @@ pub struct Config {
     pub side: Side,
     pub player: String,
     pub turn: u32,
-    pub team_names: TeamNames,
     pub dropbox: PathBuf,
     pub seven_zip_path: PathBuf,
+    #[serde(default)]
+    pub team_names: TeamNames,
 }
 
 /// Used to determine how to parse saves at runtime
