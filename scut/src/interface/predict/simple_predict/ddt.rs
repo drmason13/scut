@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use parsely::{combinator::pad, token, until, ws, Lex, Parse};
+use parsely::{combinator::pad, result_ext::*, token, until, ws, Lex, Parse, ParseResult};
 
 use crate::{
     interface::{
@@ -88,7 +88,7 @@ impl TestCase {
 ///
 /// <uploads expected>
 /// ```
-pub fn parse_test_case(input: &str) -> Result<(TestCase, &str), parsely::Error> {
+pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
     let test_side_player_marker = pad(
         token("<"),
         token(">"),
@@ -160,7 +160,8 @@ pub fn read_test_cases(data_path: &Path) -> anyhow::Result<Vec<TestCase>> {
     let (test_cases, _) = parse_test_case
         .pad()
         .many(1..9999)
-        .parse(content.as_str())?;
+        .parse(content.as_str())
+        .own_err()?;
 
     Ok(test_cases)
 }

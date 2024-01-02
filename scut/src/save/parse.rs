@@ -16,10 +16,10 @@ impl FromStr for Save {
 }
 
 pub fn parse_side(input: &str) -> ParseResult<'_, Side> {
-    token("Allies")
-        .or(token("allies"))
+    "Allies"
+        .or("allies")
         .map(|_| Side::Allies)
-        .or(token("Axis").or(token("axis")).map(|_| Side::Axis))
+        .or("Axis".or("axis").map(|_| Side::Axis))
         .parse(input)
 }
 
@@ -35,7 +35,7 @@ pub fn parse_turn(input: &str) -> ParseResult<'_, u32> {
 }
 
 pub fn parse_part(input: &str) -> ParseResult<'_, String> {
-    let (_, remaining) = token("part ").optional().lex(input)?;
+    let (_, remaining) = "part ".optional().lex(input)?;
     alphanum()
         .many(1..100)
         .map(|s| s.to_string())
@@ -46,9 +46,9 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
     // Side Start Turn
     // "Axis[ ]start 123";
     let side_start_turn = parse_side
-        .then_skip(char(' ').many(0..))
-        .then_skip(token("start").any_case())
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
+        .then_skip(itoken("start"))
+        .then_skip(' '.many(0..))
         .then(parse_turn)
         .map(|(side, turn)| Save {
             player: None,
@@ -59,11 +59,11 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Player[ ]Turn
     // "Axis DM 123";
     let side_player_turn = parse_side
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_player)
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_turn)
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_part.optional())
         .map(|(((side, player), turn), part)| Save {
             player: Some(player),
@@ -74,11 +74,11 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Turn[ ]Player
     // "Axis 123 DM";
     let side_turn_player = parse_side
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_turn)
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_player)
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_part.optional())
         .map(|(((side, turn), player), part)| Save {
             player: Some(player),
@@ -89,7 +89,7 @@ pub fn parse_save(input: &str) -> ParseResult<'_, Save> {
     // Side[ ]Turn
     // "Axis 123";
     let side_turn = parse_side
-        .then_skip(char(' ').many(0..))
+        .then_skip(' '.many(0..))
         .then(parse_turn)
         .map(|(side, turn)| Save {
             player: None,
