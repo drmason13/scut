@@ -11,7 +11,7 @@ pub enum Setting {
     SevenZipPath(PathBuf),
     Side(Side),
     Player(String),
-    Turn(u32),
+    Turn(Option<u32>),
 }
 
 impl fmt::Display for Setting {
@@ -22,7 +22,13 @@ impl fmt::Display for Setting {
             Setting::SevenZipPath(value) => value.display().fmt(f),
             Setting::Side(value) => value.fmt(f),
             Setting::Player(value) => value.fmt(f),
-            Setting::Turn(value) => value.fmt(f),
+            Setting::Turn(value) => {
+                if let Some(turn) = value {
+                    turn.fmt(f)
+                } else {
+                    write!(f, "None")
+                }
+            }
         }
     }
 }
@@ -35,12 +41,12 @@ impl Setting {
             Key::SevenZipPath => Ok(Setting::SevenZipPath(value.into())),
             Key::Side => Ok(Setting::Side(value.parse()?)),
             Key::Player => Ok(Setting::Player(value)),
-            Key::Turn => Ok(Setting::Turn(
+            Key::Turn => Ok(Setting::Turn(Some(
                 value
                     .parse()
                     .map_err(|_| anyhow::anyhow!("{value} is not a valid turn number"))
                     .suggest("Turn numbers must be whole numbers")?,
-            )),
+            ))),
         }
     }
 }

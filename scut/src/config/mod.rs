@@ -16,7 +16,8 @@ pub struct Config {
     pub saves: PathBuf,
     pub side: Side,
     pub player: String,
-    pub turn: u32,
+    #[serde(default)]
+    pub turn: Option<u32>,
 
     pub dropbox: PathBuf,
     pub seven_zip_path: PathBuf,
@@ -54,12 +55,7 @@ impl Config {
             (Key::Turn, Setting::Turn(value)) => {
                 self.turn = value;
             }
-            (key @ Key::Dropbox, _) => anyhow::bail!("invalid setting for key {key}"),
-            (key @ Key::Saves, _) => anyhow::bail!("invalid setting for key {key}"),
-            (key @ Key::SevenZipPath, _) => anyhow::bail!("invalid setting for key {key}"),
-            (key @ Key::Side, _) => anyhow::bail!("invalid setting for key {key}"),
-            (key @ Key::Player, _) => anyhow::bail!("invalid setting for key {key}"),
-            (key @ Key::Turn, _) => anyhow::bail!("invalid setting for key {key}"),
+            (key, _) => anyhow::bail!("invalid setting for key {key}"),
         }
 
         Ok(self)

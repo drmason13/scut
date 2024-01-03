@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Side {
+    /// Axis go first
     Axis,
+    /// Allies go second
     Allies,
 }
 

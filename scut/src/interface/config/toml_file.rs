@@ -100,9 +100,7 @@ impl TomlFileConfig {
 
         let player = ui.query("How do you want to sign your saves?");
 
-        let turn = query_and_parse::<u32>("What turn are you on?", ui)
-            .ok_or_else(|| anyhow::anyhow!("no side provided"))
-            .suggest("Find out which turn you are on and try again")?;
+        let turn = None;
 
         Ok(Config {
             dropbox,
