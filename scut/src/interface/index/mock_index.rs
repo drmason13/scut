@@ -5,7 +5,7 @@ use crate::Save;
 use super::IterIndex;
 
 /// Search a simple Vec of [`Save`]s
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MockIndex {
     saves: Vec<Save>,
 }

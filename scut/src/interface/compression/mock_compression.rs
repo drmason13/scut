@@ -4,6 +4,7 @@ use tracing::instrument;
 
 use super::Compression;
 
+#[derive(Debug, Clone)]
 pub struct MockCompression;
 
 impl MockCompression {

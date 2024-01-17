@@ -7,12 +7,14 @@
 mod seven_zip;
 pub use seven_zip::SevenZipCompression;
 
+use dyn_clone::DynClone;
+
 #[cfg(test)]
 pub mod mock_compression;
 
 use std::path::Path;
 
-pub trait Compression {
+pub trait Compression: DynClone + Send + Sync {
     /// Compress the file located at `from` and save the resulting compressed file at `to`.
     ///
     /// * `from` must be a full path including filename and extension.
@@ -28,4 +30,10 @@ pub trait Compression {
     ///
     /// The implementation will add the specific extension if needed.
     fn decompress(&self, from: &Path, to: &Path) -> anyhow::Result<()>;
+}
+
+impl Clone for Box<dyn Compression> {
+    fn clone(&self) -> Self {
+        dyn_clone::clone_box(&**self)
+    }
 }

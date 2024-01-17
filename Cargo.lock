@@ -311,6 +311,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "545b22097d44f8a9581187cdf93de7a71e4722bf51200cfaba810865b49a495d"
+
+[[package]]
 name = "edit"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -725,6 +731,7 @@ dependencies = [
  "clap 4.2.5",
  "dirs 4.0.0",
  "dropbox-dir",
+ "dyn-clone",
  "edit",
  "either",
  "parsely 0.1.0",
@@ -747,6 +754,7 @@ dependencies = [
  "compose",
  "dirs 5.0.1",
  "dropbox-dir",
+ "dyn-clone",
  "indoc",
  "parsely 0.1.0 (git+https://github.com/drmason13/parsely?branch=develop)",
  "paste",
