@@ -9,6 +9,7 @@ use tracing::instrument;
 
 use super::FileSystem;
 
+#[derive(Debug, Clone)]
 pub struct LocalFileSystem;
 
 impl LocalFileSystem {

@@ -48,7 +48,7 @@ pub struct Folder {
     pub files: Vec<File>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MockFileSystem {
     objects: HashMap<PathBuf, Object>,
 }

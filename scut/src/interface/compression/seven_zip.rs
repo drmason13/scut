@@ -11,6 +11,7 @@ use tracing::{debug, instrument};
 use super::Compression;
 
 /// An implementation of Compression using 7z
+#[derive(Debug, Clone)]
 pub struct SevenZipCompression {
     seven_zip_path: PathBuf,
 }

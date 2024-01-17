@@ -9,7 +9,7 @@ use scut_core::{
         predict::{AutosavePrediction, AutosavePredictionReason, Predict},
         LocalStorage, RemoteStorage, UserInteraction,
     },
-    Config,
+    Config, Save,
 };
 
 /// Runs scut, which will predict what downloads and uploads are desired, confirms with the user and then does them!
@@ -53,6 +53,9 @@ pub fn run(
         }
     }
 
+    let mut uploads_handle = None;
+    let mut downloads_handle = None;
+
     if !confirmation_prompt.is_empty() {
         ui.message(&confirmation_prompt);
 
@@ -61,19 +64,19 @@ pub fn run(
             return Ok(());
         }
 
-        for save in prediction.downloads.iter() {
-            let download_path = local.location();
-            remote.download(save, download_path)?;
-        }
+        let thread_local = dyn_clone::clone_box(&*local);
+        let thread_remote = dyn_clone::clone_box(&*remote);
 
-        for save in prediction.uploads.iter() {
-            let local_path = local.locate_save(save)
-                .with_context(|| format!("No save file for '{}' exists in your local saved games folder!", &save))?
-                .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save '{}', but the corresponding file was not found!", &save))
-                .suggest("This may be a bug in scut! You can report issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+        downloads_handle = Some(std::thread::spawn(|| {
+            download_predicted_saves(thread_local, thread_remote, prediction.downloads)
+        }));
 
-            remote.upload(save, local_path.as_path())?;
-        }
+        let thread_local = dyn_clone::clone_box(&*local);
+        let thread_remote = dyn_clone::clone_box(&*remote);
+
+        uploads_handle = Some(std::thread::spawn(|| {
+            upload_predicted_saves(thread_local, thread_remote, prediction.uploads)
+        }));
     }
 
     if let Some(autosave) = match prediction.autosave {
@@ -117,6 +120,56 @@ pub fn run(
 
     }
 
+    // join all threads and propogate any errors
+    if let Some(handle) = downloads_handle {
+        match handle.join() {
+            Ok(result) => result?,
+            Err(_panic) => {
+                anyhow::bail!(
+                    "There was an unhandled error while downloading and decompressing save files"
+                )
+            }
+        }
+    }
+    if let Some(handle) = uploads_handle {
+        match handle.join() {
+            Ok(result) => result?,
+            Err(_panic) => {
+                anyhow::bail!(
+                    "There was an unhandled error while compressing and uploading save files"
+                )
+            }
+        }
+    }
+
     ui.wait_for_user_before_close("Done ✔️");
+    Ok(())
+}
+
+fn download_predicted_saves(
+    local: Box<dyn LocalStorage>,
+    mut remote: Box<dyn RemoteStorage>,
+    saves: Vec<Save>,
+) -> anyhow::Result<()> {
+    for save in saves {
+        let download_path = local.location();
+        remote.download(&save, download_path)?;
+    }
+    Ok(())
+}
+
+fn upload_predicted_saves(
+    mut local: Box<dyn LocalStorage>,
+    mut remote: Box<dyn RemoteStorage>,
+    saves: Vec<Save>,
+) -> anyhow::Result<()> {
+    for save in saves {
+        let local_path = local.locate_save(&save)
+        .with_context(|| format!("No save file for '{}' exists in your local saved games folder!", &save))?
+        .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save '{}', but the corresponding file was not found!", &save))
+        .suggest("This may be a bug in scut! You can report issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+
+        remote.upload(&save, local_path.as_path())?;
+    }
     Ok(())
 }

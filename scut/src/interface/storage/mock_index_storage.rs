@@ -10,7 +10,7 @@ use crate::{
 
 use super::{LocalStorage, RemoteStorage};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MockIndexStorage {
     index: MockIndex,
     path: PathBuf,

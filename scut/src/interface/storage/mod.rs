@@ -2,6 +2,8 @@
 //!
 //! Implementations of these interfaces live in submodules.
 
+use dyn_clone::DynClone;
+
 pub mod dropbox_folder;
 pub mod game_saves_folder;
 
@@ -17,7 +19,7 @@ use crate::{interface::Index, Save};
 /// The Local Storage interface defines where Saves should be located within the saved Games folder.
 ///
 /// TODO: inject FileSystem as a dependency into these methods
-pub trait LocalStorage {
+pub trait LocalStorage: DynClone + Send + Sync {
     /// Returns the filepath containing the given save if it exists.
     fn locate_save(&mut self, save: &Save) -> anyhow::Result<Option<PathBuf>>;
 
@@ -38,12 +40,18 @@ pub trait LocalStorage {
     fn index(&self) -> &dyn Index;
 }
 
+impl Clone for Box<dyn LocalStorage> {
+    fn clone(&self) -> Self {
+        dyn_clone::clone_box(&**self)
+    }
+}
+
 /// Remote storage is where the saved Games are sent to be shared with other players.
 ///
 /// The Remote Storage interface defines how Saves are moved to and from an external location.
 ///
 /// TODO: inject FileSystem as a dependency into these methods
-pub trait RemoteStorage {
+pub trait RemoteStorage: DynClone + Send + Sync {
     /// Move a game save file from remote storage to local storage.
     ///
     /// The game save file must be uncompressed when saved in local storage.
@@ -60,6 +68,12 @@ pub trait RemoteStorage {
     ///
     /// [`search`]: Index::search
     fn index(&self) -> &dyn Index;
+}
+
+impl Clone for Box<dyn RemoteStorage> {
+    fn clone(&self) -> Self {
+        dyn_clone::clone_box(&**self)
+    }
 }
 
 // TODO: can a client use this interface to perform parallel uploads and/or downloads or is some kind of extension interface required?

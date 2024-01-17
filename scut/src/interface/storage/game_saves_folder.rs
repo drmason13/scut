@@ -9,6 +9,7 @@ use crate::save::{path_to_save, SaveOrAutosave};
 use crate::Save;
 
 /// This implementation is used to store the saves in your Strategic Command save game folder where they can be loaded by the game.
+#[derive(Clone)]
 pub struct GameSavesFolder {
     pub location: PathBuf,
     saves: HashMap<Save, PathBuf>,

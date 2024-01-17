@@ -10,6 +10,7 @@ use crate::{error::ErrorSuggestions, Save};
 
 /// This implementation is used to store the saves in your dropbox folder where they can be shared with other players by Dropbox.
 /// Dropbox handles the syncing between your local filesytem and their servers.
+#[derive(Clone)]
 pub struct DropboxFolder {
     pub location: PathBuf,
     saves: HashMap<Save, PathBuf>,
