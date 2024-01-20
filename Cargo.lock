@@ -1938,10 +1938,6 @@ dependencies = [
 [[package]]
 name = "parsely"
 version = "0.1.0"
-
-[[package]]
-name = "parsely"
-version = "0.1.0"
 source = "git+https://github.com/drmason13/parsely?branch=develop#2f631b5e6b9c4efde97946d4d2a7260758c4480a"
 
 [[package]]
@@ -2356,7 +2352,6 @@ dependencies = [
  "edit",
  "either",
  "image",
- "parsely 0.1.0",
  "scut_core",
  "serde",
  "tao",
@@ -2380,7 +2375,7 @@ dependencies = [
  "dropbox-dir",
  "dyn-clone",
  "indoc",
- "parsely 0.1.0 (git+https://github.com/drmason13/parsely?branch=develop)",
+ "parsely",
  "paste",
  "pretty_assertions",
  "serde",

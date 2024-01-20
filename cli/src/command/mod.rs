@@ -113,11 +113,9 @@ pub fn run(
         remote.upload(&autosave, local_path.as_path())?;
 
     } else if confirmation_prompt.is_empty() {
-
         ui.message("Your local saves folder is synced with remote.");
         ui.wait_for_user_before_close("Nothing to do 💤");
         return Ok(());
-
     }
 
     // join all threads and propogate any errors
@@ -165,9 +163,9 @@ fn upload_predicted_saves(
 ) -> anyhow::Result<()> {
     for save in saves {
         let local_path = local.locate_save(&save)
-        .with_context(|| format!("No save file for '{}' exists in your local saved games folder!", &save))?
-        .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save '{}', but the corresponding file was not found!", &save))
-        .suggest("This may be a bug in scut! You can report issue to github: <https://github.com/drmason13/scut/issues/new>")?;
+            .with_context(|| format!("No save file for '{}' exists in your local saved games folder!", &save))?
+            .ok_or_else(|| anyhow::anyhow!("scut predicted the need to upload your save '{}', but the corresponding file was not found!", &save))
+            .suggest("This may be a bug in scut! You can report issue to github: <https://github.com/drmason13/scut/issues/new>")?;
 
         remote.upload(&save, local_path.as_path())?;
     }

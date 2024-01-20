@@ -16,7 +16,6 @@ either = "1.8.0"
 serde = { version = "1.0.145", features = ["derive"] }
 thiserror = "1.0.36"
 toml = "0.5.9"
-parsely = { path = "../../parsely" }
 clap = { version = "4.2.5", features = ["derive"] }
 tracing = "0.1.37"
 tracing-rolling-file = "0.1.1"
