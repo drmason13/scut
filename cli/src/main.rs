@@ -10,28 +10,6 @@
 //! * Extract scut.exe out of scut.zip
 //! * Place scut.exe wherever you like, e.g. create the folder `C:\\Program Files\scut\` and place scut.exe inside it.
 //! * You might want to add scut.exe's location to your path, otherwise use a full path to execute scut e.g. `'C:\\Program Files\scut\scut.exe' config show` instead of just `scut config show`
-//!
-//! ### Usage
-//! Run `scut help` for a list of commands, run `scut help <subcommand>` to see help for a particular subcommand.
-//!
-//! ```plaintext
-//! .\scut\scut.exe help
-//! Usage: scut.exe [OPTIONS] <COMMAND>
-//!
-//! Commands:
-//!   config
-//!   download  Ready a turn to be played
-//!   upload    Share a turn that you've finished playing
-//!   help      Print this message or the help of the given subcommand(s)
-//!
-//! Options:
-//!   -c, --config <CONFIG>  Load config from PATH instead of the default config path
-//!   -h, --help             Print help information
-//!   -V, --version          Print version information
-//! ```
-//!
-//! #### `scut help config`
-//!
 
 use std::path::PathBuf;
 
@@ -52,6 +30,12 @@ mod config;
 mod error;
 mod storage;
 
+#[cfg(windows)]
+mod tray;
+
+#[cfg(windows)]
+use tray::run_tray;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub(crate) struct Cli {
@@ -69,6 +53,10 @@ pub(crate) struct Cli {
     /// Override the log path set in the config.
     #[arg(short, long, value_hint=ValueHint::FilePath)]
     pub(crate) log_path: Option<PathBuf>,
+
+    /// Run scut and put an icon in the system tray, click the icon to run scut.
+    #[arg(short, long)]
+    pub(crate) background: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -82,13 +70,34 @@ fn main() -> Result<(), Report> {
         config,
         turn,
         log_path,
+        background,
     } = Cli::parse();
 
     let _guard = setup_tracing(log_path)?;
 
     debug!("starting scut");
 
-    Ok(run(sub_cmd, config, turn)?)
+    let result = if background {
+        run_background(config)
+    } else {
+        run(sub_cmd, config, turn)
+    };
+
+    Ok(result?)
+}
+
+#[cfg(windows)]
+#[instrument(skip_all, level = "INFO")]
+pub(crate) fn run_background(config: Option<PathBuf>) -> anyhow::Result<()> {
+    let _ = config;
+    run_tray()
+}
+
+#[cfg(unix)]
+#[instrument(skip_all, level = "INFO")]
+pub(crate) fn run_background(config: Option<PathBuf>) -> anyhow::Result<()> {
+    let _ = config;
+    todo!("linux system tray implementation")
 }
 
 #[instrument(skip_all, level = "INFO")]
