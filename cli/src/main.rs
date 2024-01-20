@@ -77,27 +77,7 @@ fn main() -> Result<(), Report> {
 
     debug!("starting scut");
 
-    let result = if background {
-        run_background(config)
-    } else {
-        run(sub_cmd, config, turn)
-    };
-
-    Ok(result?)
-}
-
-#[cfg(windows)]
-#[instrument(skip_all, level = "INFO")]
-pub(crate) fn run_background(config: Option<PathBuf>) -> anyhow::Result<()> {
-    let _ = config;
-    run_tray()
-}
-
-#[cfg(unix)]
-#[instrument(skip_all, level = "INFO")]
-pub(crate) fn run_background(config: Option<PathBuf>) -> anyhow::Result<()> {
-    let _ = config;
-    todo!("linux system tray implementation")
+    Ok(run(sub_cmd, config, turn, background)?)
 }
 
 #[instrument(skip_all, level = "INFO")]
@@ -105,10 +85,20 @@ pub(crate) fn run(
     sub_cmd: Option<CliSubcommand>,
     config: Option<PathBuf>,
     turn: Option<u32>,
+    background: bool,
 ) -> anyhow::Result<()> {
     info!(config_path = ?config.as_ref().map(|p| p.display()));
 
     let (config, config_service) = config::ready_config(config)?;
+
+    if background {
+        // let command_user_interaction = Box::new(Terminal::new());
+        // let (local_storage, remote_storage, mut config) = storage::ready_storage(config)?;
+        // let predict = Box::<SimplePredict>::default();
+
+        return run_tray();
+    }
+
     let command_user_interaction = Box::new(Terminal::new());
 
     match sub_cmd {
