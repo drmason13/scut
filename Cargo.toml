@@ -1,7 +1,3 @@
 [workspace]
-members = [
-    "scut",
-    "cli",
-    "compose",
-]
+members = ["scut-cli", "scut-core", "scut-ui/src-tauri", "compose"]
 resolver = "2"

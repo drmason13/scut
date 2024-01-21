@@ -2,7 +2,6 @@ use std::fmt::Write;
 
 pub mod config;
 use anyhow::Context;
-pub use config::ConfigSubcommand;
 use scut_core::{
     error::ErrorSuggestions,
     interface::{
