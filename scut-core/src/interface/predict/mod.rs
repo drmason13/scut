@@ -1,19 +1,48 @@
 pub mod classic_predict;
 pub mod simple_predict;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Save, Side, Turn};
 
 use super::{LocalStorage, RemoteStorage};
 
-#[derive(Debug)]
+/// Scut's prediction of what saves should be uploaded/downloaded
+///
+/// The autosave is always included in the prediction,
+/// with a reason provided if it should not be uploaded.
+///
+/// The autosave prediction indicates what scut thinks the next enemy turn is.
+/// The reason dictates whether scut thinks the autosave should be uploaded.
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Prediction {
+    /// Whether scut suggests uploading the autosave
+    ///
+    /// (the user may choose to override)
     pub autosave: AutosavePrediction,
+
+    /// What saves scut suggests to upload
     pub uploads: Vec<Save>,
+
+    /// What saves suggests to download
     pub downloads: Vec<Save>,
 }
 
 /// The Save that an autosave would be uploaded as, wrapped in an indication of whether it is ready to upload
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", content = "save")]
+#[serde(rename = "camelCase")]
+/*
+   {
+       "status": "ready",
+       "save": { ... }
+   }
+
+   {
+       "status": "notReady",
+       "save": [{ ... }, "autosaveAlreadyUploaded"]
+   }
+*/
 pub enum AutosavePrediction {
     /// Autosave is ready
     Ready(Save),
@@ -21,7 +50,7 @@ pub enum AutosavePrediction {
 }
 
 /// Describes why an autosave might not be willing or able to upload the autosave
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AutosavePredictionReason {
     /// If the autosave is already there, you might not want to upload it again, because doing so will overwrite it
     AutosaveAlreadyUploaded,

@@ -8,10 +8,11 @@ use std::{cmp::Ordering, fmt, path::Path};
 pub use self::parse::*;
 
 pub use autosave::SaveOrAutosave;
+use serde::{Deserialize, Serialize};
 pub use side::Side;
 pub use turn::Turn;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Save {
     pub player: Option<String>,
     pub turn: Turn,

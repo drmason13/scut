@@ -2,6 +2,10 @@ pub mod terminal;
 
 use std::{fmt::Display, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
+use crate::Save;
+
 /// This interface defines ways to send/receive input to/from the user
 pub trait UserInteraction {
     /// Send a message to the user to notify them of an event.
@@ -46,4 +50,27 @@ where
             }
         }
     }
+}
+
+/// A user's selection of saves to upload/download
+///
+/// Typically this is selected by the user
+/// after having seen the prediction offered by scut.
+///
+/// The following data exchange takes place:
+///
+/// scut -> [`Prediction`] -> user
+/// scut <- [`Selection`]  <- user
+///
+/// This doesn't have to happen in one entire block like this,
+/// parts of the prediction can be *Confirmed* individually
+/// using the methods on the [`UserInteraction`] trait.
+///
+/// [`Prediction`]: crate::interface::Prediction
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Selection {
+    /// If none, do not upload the autosave
+    pub autosave: Option<Save>,
+    pub uploads: Vec<Save>,
+    pub downloads: Vec<Save>,
 }

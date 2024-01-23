@@ -7,18 +7,22 @@ license = ""
 repository = "https://github.com/drmason13/scut"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [build-dependencies]
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
+scut_core = { path = "../../scut-core" }
+
 tauri = { version = "1.5", features = [
+    "system-tray",
     "shell-open",
     "icon-ico",
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+tauri-plugin-positioner = { version = "1.0", features = ["system-tray"] }
+anyhow = "1.0.79"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

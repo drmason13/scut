@@ -7,8 +7,8 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "scut-ui",
-    "version": "0.0.0"
+    "productName": "SCUT",
+    "version": "0.3.1"
   },
   "tauri": {
     "allowlist": {
@@ -23,23 +23,28 @@
       "targets": "all",
       "identifier": "com.tauri.dev",
       "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/scut.png",
+        "icons/scut.ico"
       ]
     },
     "security": {
       "csp": null
     },
+    "systemTray": {
+        "iconPath": "icons/icon.png",
+        "iconAsTemplate": false
+    },
     "windows": [
       {
+        "label": "tray",
         "fullscreen": false,
-        "resizable": true,
-        "title": "scut-ui",
-        "width": 800,
-        "height": 600
+        "resizable": false,
+        "title": "SCUT",
+        "width": 300,
+        "height": 450,
+        "visible": false,
+        "skipTaskbar": true,
+        "decorations": false
       }
     ]
   }
