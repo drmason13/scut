@@ -10,15 +10,28 @@
 
   <body>
     <div class="container">
-        <form id="save-item-list" class="container"></form>
-        <button type="submit" form="save-item-list">Go</button>
+        <h1>Uploads</h1>
+        <form id="uploads" class="container"></form>
+
+        <h1>Downloads</h1>
+        <form id="downloads" class="container"></form>
     </div>
-    <div>
-        <p id="output">This is the output</p>
+    <div id="result"></div>
+    <div class="container">
+        <button id="go">Go</button>
     </div>
   </body>
+  <style>
+    form.container {
+        margin: 0;
+        padding: 0;
+    }
+  </style>
 </html>
 
 <template id="save-item-template">
-    <label>Autosave (Axis 30) <input type="checkbox" checked /></label>
+    <div>
+        <input type="checkbox" checked />
+        <label>Autosave (Axis 30)</label>
+    </div>
 </template>

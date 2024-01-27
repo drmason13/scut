@@ -1,6 +1,6 @@
 use tauri::{
     AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, Window,
+    SystemTrayMenuItem,
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 

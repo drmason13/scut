@@ -2,64 +2,110 @@ const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 const { appWindow } = window.__TAURI__.window;
 
-let outputEl = document.querySelector("#output");
-const form = document.querySelector("#save-item-list");
-form.addEventListener("submit", onFormSubmit);
+const uploadsEl = document.querySelector("#uploads");
+const downloadsEl = document.querySelector("#downloads");
+const goEl = document.querySelector('#go');
+const resultEl = document.querySelector('#result');
 
 // scut_core::interface::Prediction
 let currentPrediction;
 
-// scut_core::interface::Selection
-let currentSelection;
+function readForm(form) {
+    /*
+        for some reason the inputs inside the form don't end up in the formData, even if they are checked!
 
-async function upload(form) {
     let formData = new FormData(form);
     for (let item of formData.keys()) {
         console.log(item);
     }
-    let response = await invoke("upload", { items: [...formData.keys()] });
-    console.log("got response:", response);
-    outputEl.textContent = response;
+    // only checked inputs are included
+    return formData.keys();
+
+        so we'll just select them ourselves...
+    */
+    return [...form.querySelectorAll('input[checked] + label')].map(el => el.textContent);
 }
 
-await appWindow.listen('trayOpen', () => {
-    invoke('predict')
-        .then(prediction => {
-            currentPrediction = prediction;
-            console.log(prediction);
-            render(prediction);
-        })
-})
+async function download() {
+    let savesIter = readForm(downloadsEl);
+    let response = await invoke("download", { items: [...savesIter] });
+    console.log("download response: ", response);
+}
 
-function onFormSubmit(e) {
+async function upload() {
+    let savesIter = readForm(uploadsEl);
+    let response = await invoke("upload", { items: [...savesIter] });
+    console.log("upload response: ", response);
+}
+
+async function refresh() {
+    let prediction = await invoke('predict');
+    currentPrediction = prediction;
+    render(prediction);
+}
+
+async function uploadAndDownload(e) {
     e.preventDefault();
-    upload(e.target);
+    const uploads = upload();
+    const downloads = download();
+
+    const results = {
+        uploadResult: await uploads,
+        downloadResult: await downloads,
+    };
+    await refresh();
 }
+
+function predictionIsEmpty() {
+    return currentPrediction && !(currentPrediction.autosave.status === 'Ready' || currentPrediction.uploads.length > 0 || currentPrediction.downloads.length > 0)
+}
+
+await appWindow.listen('trayOpen', refresh);
+goEl.addEventListener('click', uploadAndDownload);
 
 function render({
     autosave: {
-        save: [save, reason],
+        save: [autosave, reason],
     },
     uploads,
     downloads,
 }) {
-    const out = document.querySelector("#save-item-list");
     // remove all previous save items
-    out.replaceChildren([]);
+    uploadsEl.replaceChildren([]);
+    downloadsEl.replaceChildren([]);
 
-    if (save.status == 'ready') {
-        out.appendChild(renderSaveItem(save));
+    if (autosave.status == 'ready') {
+        uploadsEl.appendChild(renderSaveItem(autosave));
     }
 
     uploads.forEach(save => {
-        out.appendChild(renderSaveItem(save));
+        uploadsEl.appendChild(renderSaveItem(save));
     });
 
     downloads.forEach(save => {
-        out.appendChild(renderSaveItem(save));
+        downloadsEl.appendChild(renderSaveItem(save));
     });
-}
 
+    if (uploads.length === 0 && autosave.status !== 'ready') {
+        let warning = document.createElement('p');
+        warning.textContent = 'No saves to upload';
+        uploadsEl.appendChild(warning);
+    }
+
+    if (downloads.length === 0) {
+        let warning = document.createElement('p');
+        warning.textContent = 'No saves to download';
+        downloadsEl.appendChild(warning);
+    }
+
+    if (predictionIsEmpty()) {
+        goEl.disabled = true;
+        goEl.textContent = 'Nothing to do 💤';
+    } else {
+        goEl.disabled = false;
+        goEl.textContent = 'Go';
+    }
+}
 
 function renderSaveItem({
     player,
@@ -71,8 +117,10 @@ function renderSaveItem({
 }) {
     const template = document.querySelector("#save-item-template");
     const clone = template.content.cloneNode(true);
+    let autosave = false;
     if (!player) {
         player = '';
+        autosave = true;
     }
     if (!number) {
         number = '';
@@ -80,6 +128,10 @@ function renderSaveItem({
     if (!part) {
         part = '';
     }
-    clone.querySelector("label").childNodes[0].nodeValue = `${side} ${player} ${number}${part}`;
+    if (autosave) {
+        clone.querySelector("label").childNodes[0].nodeValue = `Autosave (${side} ${number})`;
+    } else {
+        clone.querySelector("label").childNodes[0].nodeValue = `${side} ${player} ${number}${part}`;
+    }
     return clone;
 }
