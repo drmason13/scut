@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "SCUT",
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "tauri": {
     "allowlist": {
@@ -26,6 +26,17 @@
         "icons/scut.png",
         "icons/scut.ico"
       ]
+    },
+    "updater": {
+        "active": true,
+        "endpoints": [
+            "https://gist.githubusercontent.com/drmason13/27d0e797ea86132427cbc7674298e612/raw/a57f720d1df97ce54f017e55e5dfd5f98491247f/version-info.json"
+        ],
+        "dialog": true,
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1RjZBN0E5Qzc3QTlDMTUKUldRVm5IckhxYWYyMVlYamJEYjFOOE50Y0tYdjdta3FkZkpOSmhZRVlIYVJhclM0YnNRVGpJYTIK",
+        "windows": {
+            "installMode": "passive"
+        }
     },
     "security": {
       "csp": null
