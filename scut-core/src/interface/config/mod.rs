@@ -25,4 +25,4 @@ pub trait ConfigInit {
     fn init_config(&mut self) -> anyhow::Result<Config>;
 }
 
-pub trait ConfigService: ConfigPersistence + ConfigInit {}
+pub trait ConfigService: ConfigPersistence + ConfigInit + Send {}

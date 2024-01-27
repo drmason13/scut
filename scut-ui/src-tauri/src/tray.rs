@@ -4,6 +4,8 @@ use tauri::{
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 
+use crate::runner::ScutRunner;
+
 pub fn init_system_tray() -> SystemTray {
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let config = CustomMenuItem::new("config".to_string(), "Config");
@@ -45,8 +47,7 @@ pub fn open_window(app: &AppHandle) {
 
 pub fn on_config_menu_click(app: &AppHandle) {
     let _ = app;
-    println!(
-        "Here we'd do let the user edit their config \
-        - we can just open it in an editor for now ala scut config edit"
-    )
+    let scut_runner = ScutRunner::new().expect("everything to go perfectly always of course!");
+    let result = scut_runner.config();
+    println!("config: {result:?}");
 }

@@ -1,8 +1,8 @@
-use std::sync::{self, Mutex};
-
+use anyhow::{bail, Context};
 use scut_core::{
     interface::{
-        predict::simple_predict::SimplePredict, LocalStorage, Predict, Prediction, RemoteStorage,
+        config::ConfigService, predict::simple_predict::SimplePredict, LocalStorage, Predict,
+        Prediction, RemoteStorage,
     },
     Config, Save,
 };
@@ -13,18 +13,20 @@ pub struct ScutRunner {
     pub local: Box<dyn LocalStorage>,
     pub remote: Box<dyn RemoteStorage>,
     pub config: Config,
+    pub config_service: Box<dyn ConfigService>,
     pub predictor: SimplePredict,
 }
 
 impl ScutRunner {
     pub fn new() -> anyhow::Result<ScutRunner> {
-        let (config, _) = ready_config(None)?;
+        let (config, config_service) = ready_config(None)?;
         let (local, remote, config) = ready_storage(config)?;
 
         Ok(ScutRunner {
             local,
             remote,
             config,
+            config_service,
             predictor: SimplePredict,
         })
     }
@@ -63,16 +65,31 @@ impl ScutRunner {
 
         Ok(())
     }
-}
 
-pub struct AppState {
-    pub scut: sync::Mutex<ScutRunner>,
-}
+    pub fn config(mut self) -> anyhow::Result<()> {
+        let new_string = match edit::edit(self.config_service.serialize(&self.config)?) {
+            Ok(new_string) => new_string,
+            Err(io_err) if io_err.kind() == std::io::ErrorKind::InvalidData => {
+                bail!("Unable to edit config with non-UTF8 content!");
+            }
+            Err(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                bail!("Unable to find an editor to edit the config\n
+                          You can edit the config from the commandline using `scut config set KEY VALUE`");
+            }
+            Err(e) => return Err(e).context("failed to open an editor to edit the config"),
+        };
 
-impl AppState {
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(AppState {
-            scut: Mutex::new(ScutRunner::new()?),
-        })
+        let new_config = match self.config_service.deserialize(new_string.as_str()) {
+            Ok(config) => config,
+            Err(e) => {
+                bail!("Invalid config: {e}\nYour changes have not been saved.");
+            }
+        };
+
+        self.config_service
+            .save(&new_config)
+            .context("failed to save changes to config")?;
+
+        Ok(())
     }
 }

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::Save;
 
 /// This interface defines ways to send/receive input to/from the user
-pub trait UserInteraction {
+pub trait UserInteraction: Send {
     /// Send a message to the user to notify them of an event.
     ///
     /// No response from the user is expected, the message is informational.
