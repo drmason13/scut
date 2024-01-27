@@ -2,8 +2,9 @@ const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 const { appWindow } = window.__TAURI__.window;
 
-let uploadFormEl;
-let outputEl;
+let outputEl = document.querySelector("#output");
+const form = document.querySelector("#save-item-list");
+form.addEventListener("submit", onFormSubmit);
 
 // scut_core::interface::Prediction
 let currentPrediction;
@@ -18,45 +19,67 @@ async function upload(form) {
     }
     let response = await invoke("upload", { items: [...formData.keys()] });
     console.log("got response:", response);
-    outputEl.text = response;
+    outputEl.textContent = response;
 }
 
 await appWindow.listen('trayOpen', () => {
-    invoke('prediction/request')
+    invoke('predict')
         .then(prediction => {
             currentPrediction = prediction;
+            console.log(prediction);
             render(prediction);
         })
 })
 
-window.addEventListener("DOMContentLoaded", () => {
-    uploadFormEl = document.querySelector("#upload-form");
-    outputEl = document.querySelector("#output");
-    document.querySelector("#upload-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        upload(e.target);
-    });
-});
+function onFormSubmit(e) {
+    e.preventDefault();
+    upload(e.target);
+}
 
 function render({
-    autosave,
+    autosave: {
+        save: [save, reason],
+    },
     uploads,
     downloads,
 }) {
-    const template = document.querySelector("#save-item-template");
+    const out = document.querySelector("#save-item-list");
+    // remove all previous save items
+    out.replaceChildren([]);
 
-    if (autosave.status == 'ready') {
-        
+    if (save.status == 'ready') {
+        out.appendChild(renderSaveItem(save));
     }
 
+    uploads.forEach(save => {
+        out.appendChild(renderSaveItem(save));
+    });
+
+    downloads.forEach(save => {
+        out.appendChild(renderSaveItem(save));
+    });
 }
+
 
 function renderSaveItem({
     player,
-    turn,
+    turn: {
+        side,
+        number,
+    },
     part,
 }) {
     const template = document.querySelector("#save-item-template");
     const clone = template.content.cloneNode(true);
-    clone.querySelector("label").textContent = `${player}`
+    if (!player) {
+        player = '';
+    }
+    if (!number) {
+        number = '';
+    }
+    if (!part) {
+        part = '';
+    }
+    clone.querySelector("label").childNodes[0].nodeValue = `${side} ${player} ${number}${part}`;
+    return clone;
 }

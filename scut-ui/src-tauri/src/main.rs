@@ -57,7 +57,7 @@ fn main() {
         .system_tray(system_tray)
         .on_window_event(handle_window_event)
         .on_system_tray_event(handle_system_tray_event)
-        .invoke_handler(tauri::generate_handler![upload])
+        .invoke_handler(tauri::generate_handler![upload, predict])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

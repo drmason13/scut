@@ -10,14 +10,15 @@
 
   <body>
     <div class="container">
-        <form id="upload-form" class="container">
-            <label>Autosave (Axis 30) <input type="checkbox" checked /></label>
-            <label>Allies DM 29 <input type="checkbox" checked /></label>
-            <button type="submit">Upload</button>
-        </form>
+        <form id="save-item-list" class="container"></form>
+        <button type="submit" form="save-item-list">Go</button>
     </div>
     <div>
-        <p id="output">Click Upload</p>
+        <p id="output">This is the output</p>
     </div>
   </body>
 </html>
+
+<template id="save-item-template">
+    <label>Autosave (Axis 30) <input type="checkbox" checked /></label>
+</template>
