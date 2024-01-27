@@ -21,7 +21,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.github.drmason13.scut",
       "icon": [
         "icons/scut.png",
         "icons/scut.ico"
