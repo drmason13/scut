@@ -11,18 +11,6 @@ const resultEl = document.querySelector('#result');
 let currentPrediction;
 
 function readForm(form) {
-    /*
-        for some reason the inputs inside the form don't end up in the formData, even if they are checked!
-
-    let formData = new FormData(form);
-    for (let item of formData.keys()) {
-        console.log(item);
-    }
-    // only checked inputs are included
-    return formData.keys();
-
-        so we'll just select them ourselves...
-    */
     return [...form.querySelectorAll('input[checked] + label')].map(el => el.textContent);
 }
 
