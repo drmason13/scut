@@ -59,7 +59,6 @@ impl ScutRunner {
     }
 
     pub fn download(mut self, downloads: Vec<Save>) -> anyhow::Result<()> {
-        println!("downloading {downloads:?}");
         let local = &mut *self.local;
         let remote = &mut *self.remote;
 

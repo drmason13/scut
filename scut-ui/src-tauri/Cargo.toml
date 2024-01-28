@@ -1,6 +1,6 @@
 [package]
 name = "scut-ui"
-version = "0.4.0"
+version = "0.4.1"
 description = "Strategic Command Utility Tool system tray application UI"
 authors = ["drmason13"]
 license = ""
@@ -13,7 +13,8 @@ tauri-build = { version = "1.5", features = [] }
 [dependencies]
 scut_core = { path = "../../scut-core" }
 
-tauri = { version = "1.5", features = [ "updater",
+tauri = { version = "1.5", features = [
+    "updater",
     "system-tray",
     "shell-open",
     "icon-ico",

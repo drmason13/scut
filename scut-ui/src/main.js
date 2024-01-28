@@ -101,7 +101,8 @@ async function refresh(results) {
 
 function render({
     autosave: {
-        save: [autosave, reason],
+        save: autosave,
+        status,
     },
     uploads,
     downloads,
@@ -113,7 +114,7 @@ function render({
     uploadsEl.replaceChildren([]);
     downloadsEl.replaceChildren([]);
 
-    if (autosave.status == 'ready') {
+    if (status == 'Ready') {
         autosaveEl.appendChild(renderSaveItem(autosave));
     }
 
