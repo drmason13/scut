@@ -1,4 +1,5 @@
 use std::{
+    os::windows::process::CommandExt,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -7,6 +8,8 @@ use crate::error::{output_error, path::ErrorPaths};
 
 use anyhow::Context;
 use tracing::{debug, instrument};
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 use super::Compression;
 
@@ -33,6 +36,7 @@ impl Compression for SevenZipCompression {
 
         let mut command = Command::new("7z");
         command
+            .creation_flags(CREATE_NO_WINDOW)
             .env("PATH", path.as_os_str())
             .arg("a")
             .arg(to)

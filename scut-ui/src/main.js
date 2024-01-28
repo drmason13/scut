@@ -50,6 +50,9 @@ async function upload() {
 
 async function uploadAndDownload(e) {
     e.preventDefault();
+
+    startLoad();
+
     const uploads = upload();
     const downloads = download();
 
@@ -70,7 +73,17 @@ function predictionIsEmpty() {
     return currentPrediction && !(currentPrediction.autosave.status === 'Ready' || currentPrediction.uploads.length > 0 || currentPrediction.downloads.length > 0)
 }
 
+function startLoad() {
+    document.body.classList.add('loading');
+    goEl.disabled = true;
+}
+
+function stopLoad() {
+    document.body.classList.remove('loading');
+    goEl.disabled = false;
+}
 async function refresh(results) {
+
     let prediction = await invoke('predict');
     currentPrediction = prediction;
     const now = new Date().toLocaleTimeString();
@@ -93,6 +106,8 @@ function render({
     uploads,
     downloads,
 }, results) {
+    startLoad();
+
     // remove all previous save items
     autosaveEl.replaceChildren([]);
     uploadsEl.replaceChildren([]);
@@ -110,7 +125,7 @@ function render({
         downloadsEl.appendChild(renderSaveItem(save));
     });
 
-    if (uploads.length === 0 && autosave.status !== 'ready') {
+    if (uploads.length === 0 && status === 'NotReady') {
         let warning = document.createElement('p');
         warning.textContent = 'No saves to upload';
         uploadsEl.appendChild(warning);
@@ -127,6 +142,8 @@ function render({
     results.forEach(result => {
         resultEl.appendChild(result);
     });
+
+    stopLoad();
 
     if (predictionIsEmpty()) {
         goEl.disabled = true;

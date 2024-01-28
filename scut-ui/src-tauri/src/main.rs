@@ -18,13 +18,13 @@ mod window;
 
 pub type BoxResult<T> = Result<T, Box<dyn std::error::Error>>;
 
-#[tauri::command]
+#[tauri::command(async)]
 fn predict() -> Result<Prediction, String> {
     let scut = ScutRunner::new().map_err(|e| e.to_string())?;
     scut.make_prediction().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn upload(autosave: Option<String>, items: Vec<String>) -> Result<String, String> {
     let scut = ScutRunner::new().map_err(|e| e.to_string())?;
 
@@ -32,6 +32,7 @@ fn upload(autosave: Option<String>, items: Vec<String>) -> Result<String, String
         .map(|ref s| Save::from_str(s))
         .transpose()
         .map_err(|e| e.to_string())?;
+
     let saves = items
         .iter()
         .map(|s| Save::from_str(s))
@@ -43,7 +44,7 @@ fn upload(autosave: Option<String>, items: Vec<String>) -> Result<String, String
     Ok(format!("Uploaded {}", items.join(", ")))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn download(items: Vec<String>) -> Result<String, String> {
     let scut = ScutRunner::new().map_err(|e| e.to_string())?;
 
@@ -58,7 +59,7 @@ fn download(items: Vec<String>) -> Result<String, String> {
     Ok(format!("Downloaded {}", items.join(", ")))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn config() -> Result<String, String> {
     let scut = ScutRunner::new().map_err(|e| e.to_string())?;
     scut.config().map_err(|e| e.to_string())?;
