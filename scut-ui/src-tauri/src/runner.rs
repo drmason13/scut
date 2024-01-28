@@ -39,12 +39,18 @@ impl ScutRunner {
             .predict(self.config.side, &self.config.player, None, local, remote)
     }
 
-    pub fn upload(mut self, uploads: Vec<Save>) -> anyhow::Result<()> {
+    pub fn upload(mut self, autosave: Option<Save>, uploads: Vec<Save>) -> anyhow::Result<()> {
         let local = &mut *self.local;
         let remote = &mut *self.remote;
 
-        let local_path = local.location();
+        if let Some(save) = autosave {
+            let local_path = local
+                .locate_autosave()?
+                .expect("scut predicted need to upload autosave, so it must exist");
+            remote.upload(&save, local_path.as_path())?;
+        }
 
+        let local_path = local.location();
         for save in uploads {
             remote.upload(&save, local_path)?;
         }

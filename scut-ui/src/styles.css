@@ -31,6 +31,16 @@ body {
     text-align: center;
 }
 
+form.container {
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+form.container>div {
+    margin-inline-start: 40px;
+}
+
 h1 {
     text-align: center;
 }

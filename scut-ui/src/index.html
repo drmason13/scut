@@ -11,27 +11,27 @@
   <body>
     <div class="container">
         <h1>Uploads</h1>
+        <form id="autosave-upload" class="container"></form>
         <form id="uploads" class="container"></form>
 
         <h1>Downloads</h1>
         <form id="downloads" class="container"></form>
     </div>
-    <div id="result"></div>
+    <div style="flex-grow: 1;"></div>
+    <ul id="result"></ul>
     <div class="container">
         <button id="go">Go</button>
     </div>
   </body>
-  <style>
-    form.container {
-        margin: 0;
-        padding: 0;
-    }
-  </style>
 </html>
 
 <template id="save-item-template">
     <div>
-        <input type="checkbox" checked />
-        <label>Autosave (Axis 30)</label>
+        <input type="checkbox" checked data-save="save" />
+        <label>save</label>
     </div>
+</template>
+
+<template id="result-item-template">
+    <li>result</li>
 </template>

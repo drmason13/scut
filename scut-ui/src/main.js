@@ -2,6 +2,7 @@ const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 const { appWindow } = window.__TAURI__.window;
 
+const autosaveEl = document.querySelector("#autosave-upload");
 const uploadsEl = document.querySelector("#uploads");
 const downloadsEl = document.querySelector("#downloads");
 const goEl = document.querySelector('#go');
@@ -11,25 +12,40 @@ const resultEl = document.querySelector('#result');
 let currentPrediction;
 
 function readForm(form) {
-    return [...form.querySelectorAll('input[checked] + label')].map(el => el.textContent);
+    return [...form.querySelectorAll('input[type="checkbox"]')].filter(el => el.checked).map(el => el.dataset.save);
 }
 
 async function download() {
     let savesIter = readForm(downloadsEl);
-    let response = await invoke("download", { items: [...savesIter] });
-    console.log("download response: ", response);
+
+    try {
+        return await invoke("download", { items: [...savesIter] });
+    } catch(e) {
+        return `Error: ${e}`;
+    }
 }
 
 async function upload() {
+    let autosave = readForm(autosaveEl);
     let savesIter = readForm(uploadsEl);
-    let response = await invoke("upload", { items: [...savesIter] });
-    console.log("upload response: ", response);
-}
 
-async function refresh() {
-    let prediction = await invoke('predict');
-    currentPrediction = prediction;
-    render(prediction);
+    if (autosave.length === 0) {
+        autosave = null;
+    } else {
+        autosave = autosave[0];
+    }
+
+    let items = [...savesIter];
+
+    if (!autosave && items.length === 0) {
+        return false;
+    }
+
+    try {
+        return await invoke("upload", { autosave, items });
+    } catch(e) {
+        return `Error: ${e}`;
+    }
 }
 
 async function uploadAndDownload(e) {
@@ -37,19 +53,38 @@ async function uploadAndDownload(e) {
     const uploads = upload();
     const downloads = download();
 
-    const results = {
-        uploadResult: await uploads,
-        downloadResult: await downloads,
-    };
-    await refresh();
+    const results = [];
+    let result = await uploads;
+    if (result) {
+        results.push(result);
+    }
+    result = await downloads;
+    if (result) {
+        results.push(result);
+    }
+
+    await refresh(results);
 }
 
 function predictionIsEmpty() {
     return currentPrediction && !(currentPrediction.autosave.status === 'Ready' || currentPrediction.uploads.length > 0 || currentPrediction.downloads.length > 0)
 }
 
-await appWindow.listen('trayOpen', refresh);
-goEl.addEventListener('click', uploadAndDownload);
+async function refresh(results) {
+    let prediction = await invoke('predict');
+    currentPrediction = prediction;
+    const now = new Date().toLocaleTimeString();
+
+    let checked = `Checked: ${now}`;
+
+    if (results) {
+        results.push(checked);
+    } else {
+        results = [checked];
+    }
+
+    render(prediction, results);
+}
 
 function render({
     autosave: {
@@ -57,13 +92,14 @@ function render({
     },
     uploads,
     downloads,
-}) {
+}, results) {
     // remove all previous save items
+    autosaveEl.replaceChildren([]);
     uploadsEl.replaceChildren([]);
     downloadsEl.replaceChildren([]);
 
     if (autosave.status == 'ready') {
-        uploadsEl.appendChild(renderSaveItem(autosave));
+        autosaveEl.appendChild(renderSaveItem(autosave));
     }
 
     uploads.forEach(save => {
@@ -85,6 +121,12 @@ function render({
         warning.textContent = 'No saves to download';
         downloadsEl.appendChild(warning);
     }
+
+    results = results.map(result => renderResultItem(result));
+    resultEl.replaceChildren([]);
+    results.forEach(result => {
+        resultEl.appendChild(result);
+    });
 
     if (predictionIsEmpty()) {
         goEl.disabled = true;
@@ -116,10 +158,26 @@ function renderSaveItem({
     if (!part) {
         part = '';
     }
+    let label = clone.querySelector("label");
+    let input = clone.querySelector("input");
     if (autosave) {
-        clone.querySelector("label").childNodes[0].nodeValue = `Autosave (${side} ${number})`;
+        label.childNodes[0].nodeValue = `${side} ${number} (Autosave)`;
+        input.dataset.save = `${side} ${number}`;
     } else {
-        clone.querySelector("label").childNodes[0].nodeValue = `${side} ${player} ${number}${part}`;
+        label.childNodes[0].nodeValue = `${side} ${player} ${number}${part}`;
+        input.dataset.save = `${side} ${player} ${number}${part}`;
     }
     return clone;
 }
+
+function renderResultItem(result) {
+    const template = document.querySelector("#result-item-template");
+    const clone = template.content.cloneNode(true);
+
+    let item = clone.querySelector("li");
+    item.childNodes[0].nodeValue = result;
+    return clone;
+}
+
+await appWindow.listen('trayOpen', e => refresh());
+goEl.addEventListener('click', uploadAndDownload);

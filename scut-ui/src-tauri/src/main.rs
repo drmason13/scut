@@ -20,31 +20,47 @@ pub type BoxResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 #[tauri::command]
 fn predict() -> Result<Prediction, String> {
-    let scut = ScutRunner::new().expect("everything to go perfectly always of course!");
+    let scut = ScutRunner::new().map_err(|e| e.to_string())?;
     scut.make_prediction().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn upload(items: Vec<String>) -> Result<String, String> {
-    let scut = ScutRunner::new().expect("everything to go perfectly always of course!");
-    scut.upload(items.iter().map(|s| Save::from_str(s).unwrap()).collect())
+fn upload(autosave: Option<String>, items: Vec<String>) -> Result<String, String> {
+    let scut = ScutRunner::new().map_err(|e| e.to_string())?;
+
+    let autosave = autosave
+        .map(|ref s| Save::from_str(s))
+        .transpose()
+        .map_err(|e| e.to_string())?;
+    let saves = items
+        .iter()
+        .map(|s| Save::from_str(s))
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    Ok(format!("Uploaded {:?}", items.join(", ")))
+    scut.upload(autosave, saves).map_err(|e| e.to_string())?;
+
+    Ok(format!("Uploaded {}", items.join(", ")))
 }
 
 #[tauri::command]
 fn download(items: Vec<String>) -> Result<String, String> {
-    let scut = ScutRunner::new().expect("everything to go perfectly always of course!");
-    scut.download(items.iter().map(|s| Save::from_str(s).unwrap()).collect())
+    let scut = ScutRunner::new().map_err(|e| e.to_string())?;
+
+    let saves = items
+        .iter()
+        .map(|s| Save::from_str(s))
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    Ok(format!("Downloaded {:?}", items.join(", ")))
+    scut.download(saves).map_err(|e| e.to_string())?;
+
+    Ok(format!("Downloaded {}", items.join(", ")))
 }
 
 #[tauri::command]
 fn config() -> Result<String, String> {
-    let scut = ScutRunner::new().expect("everything to go perfectly always of course!");
+    let scut = ScutRunner::new().map_err(|e| e.to_string())?;
     scut.config().map_err(|e| e.to_string())?;
 
     Ok("Config successfully updated".to_string())
