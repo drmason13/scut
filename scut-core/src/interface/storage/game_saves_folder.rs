@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
@@ -12,7 +12,7 @@ use crate::Save;
 #[derive(Clone)]
 pub struct GameSavesFolder {
     pub location: PathBuf,
-    saves: HashMap<Save, PathBuf>,
+    saves: BTreeMap<Save, PathBuf>,
     autosave: Option<PathBuf>,
     file_system: Box<dyn FileSystem>,
 }
@@ -21,7 +21,7 @@ impl GameSavesFolder {
     pub fn new(location: PathBuf, file_system: Box<dyn FileSystem>) -> anyhow::Result<Self> {
         let mut folder = GameSavesFolder {
             location,
-            saves: HashMap::new(),
+            saves: BTreeMap::new(),
             autosave: None,
             file_system,
         };
@@ -129,7 +129,7 @@ impl LocalStorage for GameSavesFolder {
 /// Folders are able to return an iterator of saves, so they fulfil the blanket implementation of [`Index`](crate::interface::Index) for iterators of saves...
 /// and get a free implementation of Index - hooray!
 impl<'a> IterIndex<'a> for GameSavesFolder {
-    type Iter = std::collections::hash_map::Keys<'a, Save, PathBuf>;
+    type Iter = std::collections::btree_map::Keys<'a, Save, PathBuf>;
 
     fn iter(&'a self) -> Self::Iter {
         self.saves.keys()

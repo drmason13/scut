@@ -97,10 +97,19 @@ impl Ord for Save {
             Ordering::Equal => {}
             ord => return ord,
         }
+        match (&self.player, &other.player) {
+            (Some(a), Some(b)) => match a.cmp(b) {
+                Ordering::Equal => {}
+                ord => return ord,
+            },
+            (None, Some(_)) => return Ordering::Greater,
+            (Some(_), None) => return Ordering::Less,
+            (None, None) => {}
+        }
         match (&self.part, &other.part) {
             (Some(a), Some(b)) => a.cmp(b),
-            (None, Some(_)) => Ordering::Greater,
-            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
             (None, None) => Ordering::Equal,
         }
     }

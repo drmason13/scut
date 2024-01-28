@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
@@ -13,7 +13,7 @@ use crate::{error::ErrorSuggestions, Save};
 #[derive(Clone)]
 pub struct DropboxFolder {
     pub location: PathBuf,
-    saves: HashMap<Save, PathBuf>,
+    saves: BTreeMap<Save, PathBuf>,
     file_system: Box<dyn FileSystem>,
     compression: Box<dyn Compression>,
 }
@@ -26,7 +26,7 @@ impl DropboxFolder {
     ) -> anyhow::Result<Self> {
         let mut folder = DropboxFolder {
             location,
-            saves: HashMap::new(),
+            saves: BTreeMap::new(),
             compression,
             file_system,
         };
@@ -113,7 +113,7 @@ impl RemoteStorage for DropboxFolder {
 /// Folders are able to return an iterator of saves, so they fulfil the blanket implementation of [`Index`](crate::interface::Index) for iterators of saves...
 /// and get a free implementation of Index - hooray!
 impl<'a> IterIndex<'a> for DropboxFolder {
-    type Iter = std::collections::hash_map::Keys<'a, Save, PathBuf>;
+    type Iter = std::collections::btree_map::Keys<'a, Save, PathBuf>;
 
     fn iter(&'a self) -> Self::Iter {
         self.saves.keys()
