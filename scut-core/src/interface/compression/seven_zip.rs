@@ -72,6 +72,7 @@ impl Compression for SevenZipCompression {
 
         let mut command = Command::new("7z");
         command
+            .creation_flags(CREATE_NO_WINDOW)
             .env("PATH", path.as_os_str())
             .arg("e")
             .arg(from)
