@@ -49,7 +49,6 @@ use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub(crate) mod command;
 mod config;
-mod error;
 mod storage;
 
 #[derive(Parser, Debug)]
