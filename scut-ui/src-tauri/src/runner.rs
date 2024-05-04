@@ -50,9 +50,15 @@ impl ScutRunner {
             remote.upload(&save, local_path.as_path())?;
         }
 
-        let local_path = local.location();
         for save in uploads {
-            remote.upload(&save, local_path)?;
+            let local_path = local.locate_save(&save)?.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "scut predicted the need to upload \
+                your save '{}', but the corresponding file was not found!",
+                    &save
+                )
+            })?;
+            remote.upload(&save, local_path.as_path())?;
         }
 
         Ok(())
