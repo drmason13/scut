@@ -1,11 +1,11 @@
 {
-    "version": "v0.4.4",
-    "notes": "SCUT version 0.4.3\n\nGUI no longer uploads entire local saves folder",
-    "pub_date": "2024-05-04T16:05:00Z",
-    "platforms": {
-        "windows-x86_64": {
-            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVm5IckhxYWYyMVdOL3BUWkNEZ2ZWL2IyUSt2RER2Nk95aVdpZnBTcGhweDhobzYwQTRrUXlWSE51Z2ZoSlNwVWtvOWpwOUoySEY2MTBUbkhIaEh2MjlBZE13VlpHNGdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE0ODM0NzQxCWZpbGU6U0NVVF8wLjQuM194NjRfZW4tVVMubXNpLnppcApMTXJqVnVoZWlVUmthblZVdGh6WkJua0RQM3drYXVIaFh2QW1FZlZVNEtsRG8ydCsva2xwZ2x3bkpCeXVnOVR2aEdJQk1sZUwwWEJPVldkMGtvNS9DZz09Cg==",
-            "url": "https://github.com/drmason13/scut/releases/download/v0.4.3/SCUT_0.4.3_x64_en-US.msi.zip"
-        }
+  "version": "v0.4.4",
+  "notes": "SCUT version 0.4.4\\n\\n* automate release process\\n* documentation for users and developers in github README.md",
+  "pub_date": "2024-05-04T16:05:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVm5IckhxYWYyMWUxTnlMRUt5Q3RNZkNhdEw2ZEF2V2JqU0FXTkw4MXpyOU1CNEovQWFocUtVSXhvVitwcnBIaEMxMlhPcGlaakhvS09iQUt1cEJGTnlrM3hIRjk4bXdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzIwNTYyOTUzCWZpbGU6U0NVVF8wLjQuNF94NjRfZW4tVVMubXNpLnppcApvZ2pSUGxTYVV3b2dteFhDMS8xb3RkQVkyQWR4aTUxMmhsLzdrYmxJUjgxTjdyQWtZdVQ5czFQOGNiaEVuTkd2WC9vYWYwZGRvek5ucWdNOVVQZ3BCUT09Cg==",
+      "url": "https://github.com/drmason13/scut/releases/download/v0.4.4/SCUT_0.4.4_x64_en-US.msi.zip"
     }
+  }
 }

@@ -20,7 +20,7 @@ set-version version:
     save -f scut-ui/src-tauri/tauri.conf.json
 
 # sets cargo version, commits and releases scut - git tag message -> release notes
-release version: test && release-build (github-release version)
+release version: test
     echo "releasing version {{version}}"
 
     just set-version {{version}}
@@ -29,6 +29,12 @@ release version: test && release-build (github-release version)
     git commit -m "v{{version}}"
     git tag -a "v{{version}}"
     git push --tag
+
+    just release-build
+
+    just github-release {{version}}
+
+    just release-tauri-updater {{version}}
 
 release-build:
     $env.TAURI_PRIVATE_KEY = (open {{scut_signing_key_path}}); \
@@ -50,12 +56,13 @@ github-release version:
 # set the version-info gist so tauri auto-update works
 release-tauri-updater version:
     # extract notes from tag message
-    let $notes = (git cat-file -p (git rev-parse (git tag -l {{version}})) | split row "\n" | skip 5 | str join "\\n") ; \
+    let $notes = (git cat-file -p (git rev-parse (git tag -l v{{version}})) | split row "\n" | skip 5 | str join "\\n") ; \
     let $sig = open --raw {{msi_directory}}/SCUT_{{version}}_x64_en-US.msi.zip.sig ; \
+    let $url = "https://github.com/drmason13/scut/releases/download/v{{version}}/SCUT_{{version}}_x64_en-US.msi.zip" ; \
       open version-info.json | \
-      update notes $notes | \
+      update notes $"SCUT version (echo $notes | str substring 1..)" | \
       update platforms.windows-x86_64.signature $sig | \
-      update platforms.windows-x86_64.url "https://github.com/drmason13/scut/releases/download/v{{version}}/SCUT_{{version}}_x64_en-US.msi.zip" | \
+      update platforms.windows-x86_64.url $url | \
       update version "v{{version}}" | \
       to json | jq | save -f version-info.json
 
