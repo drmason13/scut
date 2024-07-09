@@ -23,7 +23,7 @@
             "targets": "all",
             "identifier": "com.drmason13.scut",
             "icon": [
-                "icons/scut.png",
+                "icons/icon.png",
                 "icons/scut.ico"
             ]
         },

@@ -1,0 +1,11 @@
+{
+    "version": "v0.4.4",
+    "notes": "SCUT version 0.4.3\n\nGUI no longer uploads entire local saves folder",
+    "pub_date": "2024-05-04T16:05:00Z",
+    "platforms": {
+        "windows-x86_64": {
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRVm5IckhxYWYyMVdOL3BUWkNEZ2ZWL2IyUSt2RER2Nk95aVdpZnBTcGhweDhobzYwQTRrUXlWSE51Z2ZoSlNwVWtvOWpwOUoySEY2MTBUbkhIaEh2MjlBZE13VlpHNGdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzE0ODM0NzQxCWZpbGU6U0NVVF8wLjQuM194NjRfZW4tVVMubXNpLnppcApMTXJqVnVoZWlVUmthblZVdGh6WkJua0RQM3drYXVIaFh2QW1FZlZVNEtsRG8ydCsva2xwZ2x3bkpCeXVnOVR2aEdJQk1sZUwwWEJPVldkMGtvNS9DZz09Cg==",
+            "url": "https://github.com/drmason13/scut/releases/download/v0.4.3/SCUT_0.4.3_x64_en-US.msi.zip"
+        }
+    }
+}

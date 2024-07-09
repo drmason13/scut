@@ -1,6 +1,5 @@
 /playground
 /target
-justfile
 .vscode
 configtest
 tracing-logs
