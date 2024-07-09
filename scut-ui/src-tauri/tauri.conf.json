@@ -1,62 +1,62 @@
 {
-    "build": {
-        "beforeDevCommand": "",
-        "beforeBuildCommand": "",
-        "devPath": "../src",
-        "distDir": "../src",
-        "withGlobalTauri": true
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "../src",
+    "distDir": "../src",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "SCUT",
+    "version": "0.4.4"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      }
     },
-    "package": {
-        "productName": "SCUT",
-        "version": "0.4.3"
+    "bundle": {
+      "active": true,
+      "targets": "all",
+      "identifier": "com.drmason13.scut",
+      "icon": [
+        "icons/icon.png",
+        "icons/scut.ico"
+      ]
     },
-    "tauri": {
-        "allowlist": {
-            "all": false,
-            "shell": {
-                "all": false,
-                "open": true
-            }
-        },
-        "bundle": {
-            "active": true,
-            "targets": "all",
-            "identifier": "com.drmason13.scut",
-            "icon": [
-                "icons/icon.png",
-                "icons/scut.ico"
-            ]
-        },
-        "updater": {
-            "active": true,
-            "endpoints": [
-                "https://gist.githubusercontent.com/drmason13/27d0e797ea86132427cbc7674298e612/raw/"
-            ],
-            "dialog": true,
-            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1RjZBN0E5Qzc3QTlDMTUKUldRVm5IckhxYWYyMVlYamJEYjFOOE50Y0tYdjdta3FkZkpOSmhZRVlIYVJhclM0YnNRVGpJYTIK",
-            "windows": {
-                "installMode": "passive"
-            }
-        },
-        "security": {
-            "csp": null
-        },
-        "systemTray": {
-            "iconPath": "icons/icon.png",
-            "iconAsTemplate": false
-        },
-        "windows": [
-            {
-                "label": "tray",
-                "fullscreen": false,
-                "resizable": false,
-                "title": "SCUT",
-                "width": 300,
-                "height": 450,
-                "visible": false,
-                "skipTaskbar": true,
-                "decorations": false
-            }
-        ]
-    }
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://gist.githubusercontent.com/drmason13/27d0e797ea86132427cbc7674298e612/raw/"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1RjZBN0E5Qzc3QTlDMTUKUldRVm5IckhxYWYyMVlYamJEYjFOOE50Y0tYdjdta3FkZkpOSmhZRVlIYVJhclM0YnNRVGpJYTIK",
+      "windows": {
+        "installMode": "passive"
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false
+    },
+    "windows": [
+      {
+        "label": "tray",
+        "fullscreen": false,
+        "resizable": false,
+        "title": "SCUT",
+        "width": 300,
+        "height": 450,
+        "visible": false,
+        "skipTaskbar": true,
+        "decorations": false
+      }
+    ]
+  }
 }
