@@ -1,6 +1,6 @@
 {
   "version": "v0.4.4",
-  "notes": "SCUT version 0.4.4\\n\\n* automate release process\\n* documentation for users and developers in github README.md",
+  "notes": "SCUT version 0.4.4\n\n* automate release process\n* documentation for users and developers in github README.md",
   "pub_date": "2024-05-04T16:05:00Z",
   "platforms": {
     "windows-x86_64": {

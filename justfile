@@ -56,10 +56,10 @@ github-release version:
 # set the version-info gist so tauri auto-update works
 release-tauri-updater version:
     # extract notes from tag message
-    let $notes = (git cat-file -p (git rev-parse (git tag -l v{{version}})) | split row "\n" | skip 5 | str join "\\n") ; \
+    let $notes = (git cat-file -p (git rev-parse (git tag -l v{{version}})) | split row "\n" | skip 5 | str join "\n") ; \
     let $sig = open --raw {{msi_directory}}/SCUT_{{version}}_x64_en-US.msi.zip.sig ; \
     let $url = "https://github.com/drmason13/scut/releases/download/v{{version}}/SCUT_{{version}}_x64_en-US.msi.zip" ; \
-      open version-info.json | \
+    open version-info.json | \
       update notes $"SCUT version (echo $notes | str substring 1..)" | \
       update platforms.windows-x86_64.signature $sig | \
       update platforms.windows-x86_64.url $url | \
