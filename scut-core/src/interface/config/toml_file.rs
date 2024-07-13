@@ -75,7 +75,6 @@ impl TomlFileConfig {
         }
     }
 
-    // TODO: abstract config defaults into an interface
     #[instrument(skip_all, ret, err)]
     fn init_config(&mut self) -> anyhow::Result<Config> {
         let ui = &mut *self.user_interaction;
@@ -179,7 +178,6 @@ fn ask_player_for_dropbox_folder(ui: &mut dyn UserInteraction) -> Option<String>
             continue;
         }
         match PathBuf::from_str(&dropbox) {
-            // TODO: check path exists, is absolute and valid and can be read before returning it!
             Ok(dropbox) => match std::fs::read_dir(&dropbox) {
                 Ok(_) => break Some(dropbox.to_string_lossy().to_string()),
                 Err(_) => {

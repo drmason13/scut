@@ -25,7 +25,6 @@ impl FileSystem for LocalFileSystem {
         Ok(path.try_exists()?)
     }
 
-    // TODO: only search for files in folder - rename method
     #[instrument(level = "TRACE", skip(self), ret, err)]
     fn files_in_folder(&mut self, folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
         let files = fs::read_dir(folder)

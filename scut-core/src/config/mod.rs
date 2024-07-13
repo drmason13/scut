@@ -10,7 +10,6 @@ mod setting;
 pub use key::Key;
 pub use setting::Setting;
 
-// TODO: implement config extensions for storing implementation specific settings
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub saves: PathBuf,
