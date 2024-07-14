@@ -1,3 +1,4 @@
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -76,18 +77,27 @@ impl DropboxFolder {
     }
 
     /// Reloads from disk what saves are in this Folder
-    ///
-    /// TODO: fix for potential to have multiple files that parse to the same Save
-    /// currently, one of the paths will "win" but I don't think it's deterministic which one will win,
-    /// so it seems preferable to detect such duplicates and error early
     pub fn refresh_saves(&mut self) -> anyhow::Result<()> {
         let all_files = self.file_system.files_in_folder(&self.location)?;
 
-        let saves = all_files
+        let mut saves = all_files
             .into_iter()
             .filter_map(|path| path_to_save(&path).map(|save| (save, path)));
 
-        self.saves = saves.collect();
+        while let Some((save, path)) = saves.next() {
+            match self.saves.entry(save) {
+                Entry::Occupied(occupied) => {
+                    let error =
+                        anyhow::anyhow!("duplicate saves detected in {}", &self.location.display());
+                    return Err(error).suggest(format!(
+                        "You have multiple save files that look like '{}' to SCUT:\n{}.\nDetermine the correct save file and rename or delete the others.",
+                        occupied.key(),
+                        format!("Including {} and {}", occupied.get().display(), path.display()),
+                    ))?;
+                }
+                Entry::Vacant(vacancy) => vacancy.insert(path),
+            };
+        }
 
         Ok(())
     }
