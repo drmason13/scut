@@ -17,6 +17,8 @@ pub struct Config {
     pub player: String,
     #[serde(default)]
     pub turn: Option<u32>,
+    #[serde(default)]
+    pub solo: Option<bool>,
 
     pub dropbox: PathBuf,
     pub seven_zip_path: PathBuf,
@@ -31,32 +33,35 @@ impl Config {
             Key::Side => Setting::Side(self.side),
             Key::Player => Setting::Player(self.player.clone()),
             Key::Turn => Setting::Turn(self.turn),
+            Key::Solo => Setting::Solo(self.solo),
         }
     }
 
-    pub fn set(mut self, key: Key, value: Setting) -> anyhow::Result<Config> {
-        match (key, value) {
-            (Key::Dropbox, Setting::Dropbox(value)) => {
+    pub fn set(mut self, setting: Setting) -> Config {
+        match setting {
+            Setting::Dropbox(value) => {
                 self.dropbox = value;
             }
-            (Key::Saves, Setting::Saves(value)) => {
+            Setting::Saves(value) => {
                 self.saves = value;
             }
-            (Key::SevenZipPath, Setting::SevenZipPath(value)) => {
+            Setting::SevenZipPath(value) => {
                 self.seven_zip_path = value;
             }
-            (Key::Side, Setting::Side(value)) => {
+            Setting::Side(value) => {
                 self.side = value;
             }
-            (Key::Player, Setting::Player(value)) => {
+            Setting::Player(value) => {
                 self.player = value;
             }
-            (Key::Turn, Setting::Turn(value)) => {
+            Setting::Turn(value) => {
                 self.turn = value;
             }
-            (key, _) => anyhow::bail!("invalid setting for key {key}"),
+            Setting::Solo(value) => {
+                self.solo = value;
+            }
         }
 
-        Ok(self)
+        self
     }
 }

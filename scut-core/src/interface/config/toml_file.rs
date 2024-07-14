@@ -100,6 +100,7 @@ impl TomlFileConfig {
         let player = ui.query("How do you want to sign your saves?");
 
         let turn = None;
+        let solo = Some(false);
 
         Ok(Config {
             dropbox,
@@ -108,6 +109,7 @@ impl TomlFileConfig {
             side,
             player,
             turn,
+            solo,
         })
     }
 }

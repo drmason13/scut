@@ -1,5 +1,6 @@
 use std::{fmt, path::PathBuf};
 
+use parsely::{switch, token, Parse};
 use serde::{Deserialize, Serialize};
 
 use crate::{error::ErrorSuggestions, Key, Side};
@@ -12,6 +13,7 @@ pub enum Setting {
     Side(Side),
     Player(String),
     Turn(Option<u32>),
+    Solo(Option<bool>),
 }
 
 impl fmt::Display for Setting {
@@ -29,6 +31,7 @@ impl fmt::Display for Setting {
                     write!(f, "None")
                 }
             }
+            Setting::Solo(value) => value.unwrap_or_default().fmt(f),
         }
     }
 }
@@ -44,9 +47,34 @@ impl Setting {
             Key::Turn => Ok(Setting::Turn(Some(
                 value
                     .parse()
-                    .map_err(|_| anyhow::anyhow!("{value} is not a valid turn number"))
-                    .suggest("Turn numbers must be whole numbers")?,
+                    .map_err(|_| anyhow::anyhow!("`{value}` is not a valid turn number"))
+                    .suggest(format!(
+                        "Turn numbers must be whole numbers, max {}",
+                        u32::MAX
+                    ))?,
             ))),
+            Key::Solo => Ok(Setting::Solo(Some({
+                switch([
+                    (token("true").any_case(), true),
+                    (token("yes").any_case(), true),
+                    (token("y").any_case(), true),
+                    (token("1").any_case(), true),
+                    (token("false").any_case(), false),
+                    (token("no").any_case(), false),
+                    (token("n").any_case(), false),
+                    (token("0").any_case(), false),
+                ])
+                .parse(&value)
+                .map_err(|_| anyhow::anyhow!("`{value}` is not a valid boolean"))
+                .and_then(|(parsed, remaining)| {
+                    if remaining.is_empty() {
+                        Ok(parsed)
+                    } else {
+                        Err(anyhow::anyhow!("`{value}` is not a valid boolean"))
+                    }
+                })
+                .suggest("config.solo should be set to 'true' or 'false'")?
+            }))),
         }
     }
 }
