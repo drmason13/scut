@@ -49,7 +49,7 @@ pub enum ConfigSubcommand {
 pub fn run(
     args: ConfigArgs,
     config: Config,
-    config_service: Box<dyn ConfigService>,
+    mut config_service: Box<dyn ConfigService>,
     mut ui: Box<dyn UserInteraction>,
 ) -> anyhow::Result<()> {
     match args.sub_cmd {
@@ -69,9 +69,13 @@ pub fn run(
         ConfigSubcommand::Set { key, value } => {
             debug!(subcommand = "set", %key, %value);
             let value = normalise(value);
-            let value =
-                Setting::new(key, value).with_context(|| format!("failed to set config.{key}"))?;
-            config.set(key, value)?;
+            let setting = Setting::new(key, value)
+                .with_context(|| format!("Invalid value for config.{key}"))?;
+            let updated_config = config.set(setting);
+
+            config_service
+                .save(&updated_config)
+                .with_context(|| "failed to save config to disk")?;
 
             ui.message(&format!("config.{key} was updated successfully"));
         }

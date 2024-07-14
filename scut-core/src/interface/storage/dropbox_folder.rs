@@ -157,7 +157,7 @@ mod tests {
         )?;
 
         dropbox.download(
-            &Save::new(Side::Allies, 1),
+            &Save::from_parts(Side::Allies, 1),
             PathBuf::from("/local/").as_path(),
         )?;
 

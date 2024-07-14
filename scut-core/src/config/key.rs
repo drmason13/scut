@@ -10,6 +10,7 @@ pub enum Key {
     Side,
     Player,
     Turn,
+    Solo,
 }
 
 impl fmt::Display for Key {
@@ -21,6 +22,7 @@ impl fmt::Display for Key {
             Key::Side => write!(f, "side"),
             Key::Player => write!(f, "player"),
             Key::Turn => write!(f, "turn"),
+            Key::Solo => write!(f, "solo"),
         }
     }
 }
@@ -39,6 +41,7 @@ impl FromStr for Key {
             "side" | "team" => Ok(Self::Side),
             "player" | "name" => Ok(Self::Player),
             "turn" => Ok(Self::Turn),
+            "solo" => Ok(Self::Solo),
             key => anyhow::bail!("invalid key: {key}"),
         }
     }

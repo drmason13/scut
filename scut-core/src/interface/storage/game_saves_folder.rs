@@ -159,7 +159,7 @@ mod tests {
             GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
         assert_eq!(
             folder
-                .locate_save(&Save::new(Side::Axis, 1).player("DM"))
+                .locate_save(&Save::from_parts(Side::Axis, 1).player("DM"))
                 .expect("save should exist"),
             Some(PathBuf::from("saves/Axis DM 1.sav"))
         );
@@ -179,7 +179,7 @@ mod tests {
         let mut folder =
             GameSavesFolder::new(PathBuf::from("saves"), Box::new(mock_file_system)).unwrap();
         let actual = folder
-            .locate_save(&Save::new(Side::Axis, 1).player("DM"))
+            .locate_save(&Save::from_parts(Side::Axis, 1).player("DM"))
             .expect("save should exist");
 
         assert_eq!(actual, None);

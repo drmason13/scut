@@ -1,11 +1,6 @@
-<Axis DM>
+<Axis DM, solo>
 Local:
 autosave = Allies 84, AutosaveAlreadyUploaded
-Axis DG 80
-Axis DG 81
-Axis DG 82
-Axis DG 83
-Axis DG 84
 Axis DM 79
 Axis DM 80
 Axis DM 81
@@ -36,12 +31,6 @@ Axis 81
 Axis 82
 Axis 83
 Axis 84
-Axis DG 79
-Axis DG 80
-Axis DG 81
-Axis DG 82
-Axis DG 83
-Axis DG 84
 Axis DM 79
 Axis DM 80
 Axis DM 81
@@ -53,7 +42,7 @@ Downloads:
 
 Uploads:
 
-<Allies GM>
+<Allies GM, solo>
 Local:
 autosave = Axis 2, TurnNotPlayed(Allies GM 1)
 
@@ -68,14 +57,9 @@ Allies 1
 
 Uploads:
 
-<Axis DM>
+<Axis DM, solo>
 Local:
 autosave = Allies 85, TurnNotPlayed(Axis DM 85)
-Axis DG 80
-Axis DG 81
-Axis DG 82
-Axis DG 83
-Axis DG 84
 Axis DM 79
 Axis DM 80
 Axis DM 81
@@ -87,23 +71,16 @@ Remote:
 Allies GM 84
 Allies TG 84
 Axis 85
-Axis DG 84
-Axis DG 85
 Axis DM 84
 
 Downloads:
 Axis 85
-Axis DG 85
 
 Uploads:
 
-<Axis DM>
+<Axis DM, solo>
 Local:
 autosave = Allies 86, Ready
-Axis DG 83
-Axis DG 84
-Axis DG 85
-Axis DG 86
 Axis DM 83
 Axis DM 84
 Axis DM 85
@@ -117,9 +94,6 @@ Allies TG 84
 Allies TG 85
 Axis 85
 Axis 86
-Axis DG 84
-Axis DG 85
-Axis DG 86
 Axis DM 84
 Axis DM 85
 

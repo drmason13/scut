@@ -27,11 +27,13 @@ pub fn run(
     let side = config.side;
     let player = config.player.as_str();
 
-    let prediction = predictor.predict(side, player, turn_override, local, remote)?;
+    let playing_solo = config.solo.unwrap_or_default();
+    let prediction = predictor.predict(side, player, turn_override, playing_solo, local, remote)?;
 
     let mut confirmation_prompt = String::new();
 
-    if !prediction.downloads.is_empty() {
+    let no_downloads = prediction.downloads.is_empty();
+    if !no_downloads {
         writeln!(confirmation_prompt, "Will download:")?;
         for download in prediction.downloads.iter() {
             writeln!(
@@ -105,7 +107,22 @@ pub fn run(
                 }
             }
             AutosavePredictionReason::TeammateSaveNotUploaded => None,
-            AutosavePredictionReason::NewTurnAvailable => None,
+            AutosavePredictionReason::NewTeammateSaveAvailable(_) => None,
+            AutosavePredictionReason::TurnNotPlayed(save) => {
+                if no_downloads
+                    && ui.confirm(
+                        &format!(
+                            "⚠️ It looks like you haven't played {save} yet. \
+                            Do you want to upload your autosave as {autosave} anyway? ⚠️",
+                        ),
+                        Some(false),
+                    )
+                {
+                    Some(autosave)
+                } else {
+                    None
+                }
+            }
             AutosavePredictionReason::AutosaveNotAvailable => None,
         },
     } {

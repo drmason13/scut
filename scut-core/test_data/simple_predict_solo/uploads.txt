@@ -1,10 +1,8 @@
-<Axis DM>
+<Axis DM, solo>
 Local:
 autosave = Allies 2, Ready
 Axis DM 1
-Axis DG 1
 Axis DM 2
-Axis DG 2
 Axis DM 2B
 
 Remote:
@@ -12,23 +10,19 @@ Allies 1
 Allies GM 1
 Allies TG 1
 Axis DM 1
-Axis DG 1
 Axis 2
 Axis DM 2
-Axis DG 2
 
 Downloads:
 
 Uploads:
 Axis DM 2B
 
-<Axis DM>
+<Axis DM, solo>
 Local:
-autosave = Allies 2, NewTeammateSaveAvailable(Axis DG 2B)
+autosave = Allies 2, Ready
 Axis DM 1
-Axis DG 1
 Axis DM 2
-Axis DG 2
 Axis DM 2B
 
 Remote:
@@ -36,13 +30,9 @@ Allies 1
 Allies GM 1
 Allies TG 1
 Axis DM 1
-Axis DG 1
 Axis DM 2
-Axis DG 2
-Axis DG 2B
 
 Downloads:
-Axis DG 2B
 
 Uploads:
 Axis DM 2B
