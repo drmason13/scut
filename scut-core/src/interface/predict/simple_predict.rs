@@ -24,17 +24,19 @@ impl Predict for SimplePredict {
         side: Side,
         player: &str,
         turn_override: Option<u32>,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Prediction> {
         let turn = turn_override
             .map(|turn_number| Turn::new(side, turn_number))
-            .unwrap_or(self.predict_turn(side, player, local, remote)?);
+            .unwrap_or(self.predict_turn(side, player, playing_solo, local, remote)?);
 
-        let uploads = self.predict_uploads(turn, side, player, local, remote)?;
-        let downloads = self.predict_downloads(turn, side, player, local, remote)?;
+        let uploads = self.predict_uploads(turn, side, player, playing_solo, local, remote)?;
+        let downloads = self.predict_downloads(turn, side, player, playing_solo, local, remote)?;
 
-        let autosave = self.predict_autosave(turn, &downloads, side, player, local, remote)?;
+        let autosave =
+            self.predict_autosave(turn, &downloads, side, player, playing_solo, local, remote)?;
 
         Ok(Prediction {
             autosave,
@@ -48,6 +50,7 @@ impl Predict for SimplePredict {
         &self,
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Turn> {
@@ -60,6 +63,7 @@ impl Predict for SimplePredict {
             .latest(&Query::new().side(side).player(Some(player)))?
             .map(|s| s.turn);
 
+        // TODO: handle playing_solo
         let last_friendly_start_turn = remote_index
             .latest(&Query::new().side(side).player(None))?
             .map(|s| s.turn);
@@ -120,13 +124,11 @@ impl Predict for SimplePredict {
         predicted_downloads: &[Save],
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<AutosavePrediction> {
-        let autosave = Save::new(
-            predicted_turn.side.other_side(),
-            predicted_turn.next().number,
-        );
+        let autosave = Save::new(predicted_turn.next());
 
         let autosave_exists = local.locate_autosave()?.is_some();
         if !autosave_exists {
@@ -136,27 +138,49 @@ impl Predict for SimplePredict {
             ));
         }
 
-        if !predicted_downloads.is_empty() {
+        let query_played_save = Query::new()
+            .side(side)
+            .turn_number(predicted_turn.number)
+            .player(Some(player));
+
+        let have_played_your_turn = local.index().count(&query_played_save)? >= 1;
+        if !have_played_your_turn {
             return Ok(AutosavePrediction::NotReady(
                 autosave,
-                AutosavePredictionReason::NewTurnAvailable,
+                AutosavePredictionReason::TurnNotPlayed(Save::new(predicted_turn).player(player)),
             ));
         }
 
-        let query = Query::new()
+        let new_teammate_save_available = predicted_downloads
+            .iter()
+            .filter(|save| {
+                save.player.as_ref().is_some_and(|p| p != player) && save.turn.side == side
+            })
+            .next();
+
+        if let Some(save) = new_teammate_save_available {
+            return Ok(AutosavePrediction::NotReady(
+                autosave,
+                AutosavePredictionReason::NewTeammateSaveAvailable(save.clone()),
+            ));
+        }
+
+        let query_autosave = Query::new()
             .side(side.other_side())
             .turn_number(predicted_turn.next().number)
             .player(None)
             .part(None);
 
-        remote.index().search(&query)?;
-
-        let autosave_uploaded_already = remote.index().count(&query)? >= 1;
+        let autosave_uploaded_already = remote.index().count(&query_autosave)? >= 1;
         if autosave_uploaded_already {
             return Ok(AutosavePrediction::NotReady(
                 autosave,
                 AutosavePredictionReason::AutosaveAlreadyUploaded,
             ));
+        }
+
+        if playing_solo {
+            return Ok(AutosavePrediction::Ready(autosave));
         }
 
         let query = Query::new()
@@ -172,14 +196,16 @@ impl Predict for SimplePredict {
 
         let friendly_turn = remote.index().search(&query)?;
 
+        dbg!(remote.index().search(&Query::new())?);
+
         if friendly_turn.is_empty() {
-            return Ok(AutosavePrediction::NotReady(
+            Ok(AutosavePrediction::NotReady(
                 autosave,
                 AutosavePredictionReason::TeammateSaveNotUploaded,
-            ));
+            ))
+        } else {
+            Ok(AutosavePrediction::Ready(autosave))
         }
-
-        Ok(AutosavePrediction::Ready(autosave))
     }
 
     #[instrument(skip(self, local, remote), ret, err)]
@@ -188,6 +214,7 @@ impl Predict for SimplePredict {
         predicted_turn: Turn,
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
@@ -235,6 +262,7 @@ impl Predict for SimplePredict {
         predicted_turn: Turn,
         _side: Side,
         _player: &str,
+        _playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<crate::Save>> {
@@ -265,36 +293,42 @@ mod tests {
         let mut remote_storage = MockIndexStorage::new(
             true,
             vec![
-                Save::new(Side::Axis, 1),
-                Save::new(Side::Axis, 1).player("DM"),
-                Save::new(Side::Axis, 1).player("DG"),
-                Save::new(Side::Axis, 2),
-                Save::new(Side::Allies, 1),
-                Save::new(Side::Allies, 1).player("GM"),
-                Save::new(Side::Allies, 1).player("TG"),
+                Save::from_parts(Side::Axis, 1),
+                Save::from_parts(Side::Axis, 1).player("DM"),
+                Save::from_parts(Side::Axis, 1).player("DG"),
+                Save::from_parts(Side::Axis, 2),
+                Save::from_parts(Side::Allies, 1),
+                Save::from_parts(Side::Allies, 1).player("GM"),
+                Save::from_parts(Side::Allies, 1).player("TG"),
             ],
         );
 
         let mut local_storage = MockIndexStorage::new(
             true,
             vec![
-                Save::new(Side::Axis, 1),
-                Save::new(Side::Axis, 1).player("DG"),
+                Save::from_parts(Side::Axis, 1),
+                Save::from_parts(Side::Axis, 1).player("DG"),
             ],
         );
 
-        let turn =
-            predict.predict_turn(Side::Axis, "DM", &mut local_storage, &mut remote_storage)?;
+        let turn = predict.predict_turn(
+            Side::Axis,
+            "DM",
+            true,
+            &mut local_storage,
+            &mut remote_storage,
+        )?;
 
         assert_eq!(
             predict.predict_downloads(
                 turn,
                 Side::Axis,
                 "DM",
+                true,
                 &mut local_storage,
                 &mut remote_storage
             )?,
-            vec![Save::new(Side::Axis, 2),]
+            vec![Save::from_parts(Side::Axis, 2),]
         );
 
         Ok(())

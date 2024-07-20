@@ -20,13 +20,18 @@ pub struct Save {
 }
 
 impl Save {
-    /// create a new turn start Save for a given side and turn
-    pub fn new(side: Side, turn: u32) -> Self {
+    /// Create a new turn start Save for a given turn
+    pub fn new(turn: Turn) -> Self {
         Save {
-            turn: Turn::new(side, turn),
+            turn,
             player: None,
             part: None,
         }
+    }
+
+    /// Create a turn start Save from the side and turn number
+    pub fn from_parts(side: Side, turn: u32) -> Self {
+        Save::new(Turn::new(side, turn))
     }
 
     /// Builder method to set the player of this save

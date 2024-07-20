@@ -110,14 +110,14 @@ pub(crate) fn run(
         ),
         None => {
             let (local_storage, remote_storage, mut config) = storage::ready_storage(config)?;
-            let predict = Box::<SimplePredict>::default();
+            let predictor = Box::<SimplePredict>::default();
 
             command::run(
                 turn,
                 &mut config,
                 local_storage,
                 remote_storage,
-                predict,
+                predictor,
                 command_user_interaction,
             )
         }

@@ -21,13 +21,14 @@ impl ScutRunner {
     pub fn new() -> anyhow::Result<ScutRunner> {
         let (config, config_service) = ready_config(None)?;
         let (local, remote, config) = ready_storage(config)?;
+        let predictor = SimplePredict::default();
 
         Ok(ScutRunner {
             local,
             remote,
             config,
             config_service,
-            predictor: SimplePredict,
+            predictor,
         })
     }
 
@@ -35,8 +36,14 @@ impl ScutRunner {
         let local = &mut *self.local;
         let remote = &mut *self.remote;
 
-        self.predictor
-            .predict(self.config.side, &self.config.player, None, local, remote)
+        self.predictor.predict(
+            self.config.side,
+            &self.config.player,
+            None,
+            self.config.solo.unwrap_or_default(),
+            local,
+            remote,
+        )
     }
 
     pub fn upload(mut self, autosave: Option<Save>, uploads: Vec<Save>) -> anyhow::Result<()> {

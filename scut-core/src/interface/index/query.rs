@@ -174,11 +174,11 @@ mod tests {
     #[test]
     fn query_works() {
         let saves = &[
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 3).player("A"),
-            Save::new(Side::Axis, 4).player("B"),
-            Save::new(Side::Allies, 5).player("A").part("1"),
+            Save::from_parts(Side::Allies, 1),
+            Save::from_parts(Side::Axis, 2),
+            Save::from_parts(Side::Allies, 3).player("A"),
+            Save::from_parts(Side::Axis, 4).player("B"),
+            Save::from_parts(Side::Allies, 5).player("A").part("1"),
         ];
 
         let mock_index = MockIndex::new(saves);
@@ -210,11 +210,11 @@ mod tests {
     #[test]
     fn not_queries_work() {
         let saves = &[
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 3).player("A"),
-            Save::new(Side::Axis, 4).player("B"),
-            Save::new(Side::Allies, 5).player("A").part("1"),
+            Save::from_parts(Side::Allies, 1),
+            Save::from_parts(Side::Axis, 2),
+            Save::from_parts(Side::Allies, 3).player("A"),
+            Save::from_parts(Side::Axis, 4).player("B"),
+            Save::from_parts(Side::Allies, 5).player("A").part("1"),
         ];
 
         let mock_index = MockIndex::new(saves);
@@ -258,11 +258,11 @@ mod tests {
     #[test]
     fn compound_queries_work() {
         let saves = &[
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 3).player("A"),
-            Save::new(Side::Axis, 4).player("B"),
-            Save::new(Side::Allies, 5).player("A").part("1"),
+            Save::from_parts(Side::Allies, 1),
+            Save::from_parts(Side::Axis, 2),
+            Save::from_parts(Side::Allies, 3).player("A"),
+            Save::from_parts(Side::Axis, 4).player("B"),
+            Save::from_parts(Side::Allies, 5).player("A").part("1"),
         ];
 
         let mock_index = MockIndex::new(saves);
@@ -341,13 +341,13 @@ mod tests {
     #[test]
     fn test_query_in_specific_scenario() -> anyhow::Result<()> {
         let saves = &[
-            Save::new(Side::Axis, 1),
-            Save::new(Side::Axis, 1).player("DM"),
-            Save::new(Side::Axis, 1).player("DG"),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Allies, 1).player("GM"),
-            Save::new(Side::Allies, 1).player("TG"),
+            Save::from_parts(Side::Axis, 1),
+            Save::from_parts(Side::Axis, 1).player("DM"),
+            Save::from_parts(Side::Axis, 1).player("DG"),
+            Save::from_parts(Side::Axis, 2),
+            Save::from_parts(Side::Allies, 1),
+            Save::from_parts(Side::Allies, 1).player("GM"),
+            Save::from_parts(Side::Allies, 1).player("TG"),
         ];
 
         let mock_index = MockIndex::new(saves);
@@ -360,9 +360,9 @@ mod tests {
         assert_eq!(
             mock_index.search(&query)?,
             vec![
-                Save::new(Side::Axis, 1),
-                Save::new(Side::Axis, 1).player("DM"),
-                Save::new(Side::Axis, 1).player("DG"),
+                Save::from_parts(Side::Axis, 1),
+                Save::from_parts(Side::Axis, 1).player("DM"),
+                Save::from_parts(Side::Axis, 1).player("DG"),
             ]
         );
 
@@ -375,9 +375,9 @@ mod tests {
         assert_eq!(
             mock_index.search(&query)?,
             vec![
-                Save::new(Side::Axis, 1).player("DM"),
-                Save::new(Side::Axis, 1).player("DG"),
-                Save::new(Side::Axis, 2),
+                Save::from_parts(Side::Axis, 1).player("DM"),
+                Save::from_parts(Side::Axis, 1).player("DG"),
+                Save::from_parts(Side::Axis, 2),
             ]
         );
         Ok(())
@@ -386,11 +386,11 @@ mod tests {
     #[test]
     fn test_query_by_turn() -> anyhow::Result<()> {
         let saves = &[
-            Save::new(Side::Allies, 1),
-            Save::new(Side::Axis, 2),
-            Save::new(Side::Allies, 3).player("A"),
-            Save::new(Side::Axis, 4).player("B"),
-            Save::new(Side::Allies, 5).player("A").part("1"),
+            Save::from_parts(Side::Allies, 1),
+            Save::from_parts(Side::Axis, 2),
+            Save::from_parts(Side::Allies, 3).player("A"),
+            Save::from_parts(Side::Axis, 4).player("B"),
+            Save::from_parts(Side::Allies, 5).player("A").part("1"),
         ];
 
         let mock_index = MockIndex::new(saves);

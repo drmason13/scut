@@ -56,8 +56,10 @@ pub enum AutosavePredictionReason {
     AutosaveAlreadyUploaded,
     /// When no save from your teammate is in the remote for this turn, it means they haven't played their part of the turn yet
     TeammateSaveNotUploaded,
-    /// When you have predicted downloads, that means your teammate has played a turn you haven't seen yet
-    NewTurnAvailable,
+    /// When your teammate uploads a save for the current turn that you don't have, you are prompted before uploading an autosave
+    NewTeammateSaveAvailable(Save),
+    /// When you have no local save for your player, you need to play the turn and save it before uploading an autosave
+    TurnNotPlayed(Save),
     /// If the autosave isn't in local storage, you **cannot** upload it
     AutosaveNotAvailable,
 }
@@ -75,6 +77,7 @@ pub trait Predict {
         side: Side,
         player: &str,
         turn_override: Option<u32>,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Prediction>;
@@ -84,6 +87,7 @@ pub trait Predict {
         &self,
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Turn>;
@@ -94,6 +98,7 @@ pub trait Predict {
         predicted_turn: Turn,
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<Save>>;
@@ -104,6 +109,7 @@ pub trait Predict {
         predicted_turn: Turn,
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<Vec<Save>>;
@@ -115,6 +121,7 @@ pub trait Predict {
         predicted_downloads: &[Save],
         side: Side,
         player: &str,
+        playing_solo: bool,
         local: &mut dyn LocalStorage,
         remote: &mut dyn RemoteStorage,
     ) -> anyhow::Result<AutosavePrediction>;

@@ -1,4 +1,4 @@
-<Axis DM>
+<Axis DM, solo>
 Local:
 autosave = Allies 2, TurnNotPlayed(Axis DM 2)
 Axis 1 DM
@@ -6,26 +6,22 @@ Axis 1 DM
 Remote:
 Axis 1
 Axis 1 DM
-Axis 1 DG
 Axis 2
 Allies 1
 Allies 1 GM
 Allies 1 TG
 
 Downloads:
-Axis 1 DG
 Axis 2
 
 Uploads:
 
-<Axis DG>
+<Axis DG, solo>
 Local:
 autosave = Allies 2, TurnNotPlayed(Axis DG 2)
-Axis 1 DM
 
 Remote:
 Axis 1
-Axis 1 DM
 Axis 1 DG
 Axis 2
 Allies 1
@@ -37,7 +33,7 @@ Axis 2
 
 Uploads:
 
-<Allies TG>
+<Allies TG, solo>
 Local:
 autosave = Axis 3, TurnNotPlayed(Allies TG 2)
 Allies 1 TG
@@ -48,15 +44,13 @@ Axis 1 DM
 Axis 1 DG
 Axis 2
 Allies 1
-Allies 1 GM
 Allies 1 TG
 
 Downloads:
-Allies 1 GM
 
 Uploads:
 
-<Allies GM>
+<Allies GM, solo>
 Local:
 autosave = Axis 3, TurnNotPlayed(Allies GM 2)
 
@@ -67,14 +61,12 @@ Axis 1 DG
 Axis 2
 Allies 1
 Allies 1 GM
-Allies 1 TG
 
 Downloads:
-Allies 1 TG
 
 Uploads:
 
-<Allies GM>
+<Allies GM, solo>
 Local:
 autosave = Axis 2, TurnNotPlayed(Allies GM 1)
 
@@ -88,4 +80,3 @@ Downloads:
 Allies 1
 
 Uploads:
-

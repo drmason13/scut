@@ -38,7 +38,7 @@ mod tests {
     fn new_works() {
         use crate::{Save, Side};
 
-        let saves = &[Save::new(Side::Allies, 1)];
+        let saves = &[Save::from_parts(Side::Allies, 1)];
         let _ = MockIndex::new(saves);
     }
 
@@ -46,12 +46,12 @@ mod tests {
     fn mock_index_is_searchable() {
         use crate::{Save, Side};
 
-        let saves = &[Save::new(Side::Allies, 1)];
+        let saves = &[Save::from_parts(Side::Allies, 1)];
         let index = MockIndex::new(saves);
 
         assert_eq!(
             index.search(&Query::new()).unwrap(),
-            vec![Save::new(Side::Allies, 1)]
+            vec![Save::from_parts(Side::Allies, 1)]
         );
     }
 }

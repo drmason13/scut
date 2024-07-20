@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use parsely::{combinator::pad, result_ext::*, token, until, ws, Lex, Parse, ParseResult};
+use parsely::{any, combinator::pad, result_ext::*, token, ws, Lex, Parse, ParseResult};
 
 use crate::{
     interface::{
@@ -19,6 +19,7 @@ pub struct TestCase {
     remote: MockIndexStorage,
     side: Side,
     player: String,
+    playing_solo: Option<bool>,
     expected_autosave_prediction: AutosavePrediction,
     downloads_expected: Vec<Save>,
     uploads_expected: Vec<Save>,
@@ -29,6 +30,7 @@ impl TestCase {
         let turn = pred.predict_turn(
             self.side,
             self.player.as_str(),
+            self.playing_solo.unwrap_or_default(),
             &mut self.local,
             &mut self.remote,
         )?;
@@ -37,6 +39,7 @@ impl TestCase {
             turn,
             self.side,
             self.player.as_str(),
+            self.playing_solo.unwrap_or_default(),
             &mut self.local,
             &mut self.remote,
         )?;
@@ -45,6 +48,7 @@ impl TestCase {
             turn,
             self.side,
             self.player.as_str(),
+            self.playing_solo.unwrap_or_default(),
             &mut self.local,
             &mut self.remote,
         )?;
@@ -54,6 +58,7 @@ impl TestCase {
             &actual_downloads,
             self.side,
             self.player.as_str(),
+            self.playing_solo.unwrap_or_default(),
             &mut self.local,
             &mut self.remote,
         )?;
@@ -89,23 +94,33 @@ impl TestCase {
 /// <uploads expected>
 /// ```
 pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
-    let test_side_player_marker = pad(
-        token("<"),
-        token(">"),
+    let test_side_player_solo_marker = pad(
+        "<",
+        ">",
         parse_side
             .then_skip(ws())
-            .then(until(">").map(|s| String::from(s))),
+            .then(
+                any()
+                    .many(1..)
+                    .or_until(token(">").or(token(", ")))
+                    .map(|s| String::from(s)),
+            )
+            .then(", solo".map(|_| true).optional()),
     );
-    let ((side, player), remaining) = test_side_player_marker
+    let (((side, player), playing_solo), remaining) = test_side_player_solo_marker
         .then_skip(ws().optional())
         .parse(input)?;
 
-    let autosave_prediction_reason = token("AutosaveAlreadyUploaded")
+    let autosave_prediction_reason = "AutosaveAlreadyUploaded"
         .map(|_| AutosavePredictionReason::AutosaveAlreadyUploaded)
-        .or(token("TeammateSaveNotUploaded")
-            .map(|_| AutosavePredictionReason::TeammateSaveNotUploaded))
-        .or(token("NewTurnAvailable").map(|_| AutosavePredictionReason::NewTurnAvailable))
-        .or(token("AutosaveNotAvailable").map(|_| AutosavePredictionReason::AutosaveNotAvailable));
+        .or("TeammateSaveNotUploaded".map(|_| AutosavePredictionReason::TeammateSaveNotUploaded))
+        .or("NewTeammateSaveAvailable"
+            .skip_then(parse_save.pad_with('(', ')'))
+            .map(|save| AutosavePredictionReason::NewTeammateSaveAvailable(save)))
+        .or("TurnNotPlayed"
+            .skip_then(parse_save.pad_with('(', ')'))
+            .map(|save| AutosavePredictionReason::TurnNotPlayed(save)))
+        .or("AutosaveNotAvailable".map(|_| AutosavePredictionReason::AutosaveNotAvailable));
 
     let comma = || token(",").then(ws().optional());
 
@@ -143,6 +158,7 @@ pub fn parse_test_case(input: &str) -> ParseResult<TestCase> {
             remote,
             side,
             player,
+            playing_solo,
             downloads_expected,
             uploads_expected,
         },
@@ -160,24 +176,32 @@ pub fn read_test_cases(data_path: &Path) -> anyhow::Result<Vec<TestCase>> {
     let (test_cases, _) = parse_test_case
         .pad()
         .many(1..9999)
+        .then_end()
         .parse(content.as_str())
         .own_err()?;
 
     Ok(test_cases)
 }
 
-pub fn test_dir() -> PathBuf {
-    PathBuf::from("./test_data/").join("simple_predict")
+pub fn test_dir(solo: bool) -> PathBuf {
+    if solo {
+        PathBuf::from("./test_data/").join("simple_predict_solo")
+    } else {
+        PathBuf::from("./test_data/").join("simple_predict")
+    }
 }
 
 macro_rules! ddt {
     ($name:ident, $doc_comment:expr) => {
+        ddt!($name, $doc_comment, solo = false);
+    };
+    ($name:ident, $doc_comment:expr, solo=$solo:literal) => {
         paste::item! {
             #[doc = $doc_comment]
             #[test]
             fn [< simple_predict_ddt_ $name >]() -> anyhow::Result<()> {
                 let $name = stringify!{ $name };
-                let data_path = test_dir().join(format!("{}.txt", $name));
+                let data_path = test_dir($solo).join(format!("{}.txt", $name));
 
                 let mut test_cases = read_test_cases(data_path.as_path())?;
 
@@ -193,6 +217,16 @@ macro_rules! ddt {
 
 ddt!(mixed, "both uploads and downloads (with/without autosave)");
 ddt!(bugs, "Any fixed predict bugs get a test case");
-ddt!(downloads, "should only predict downloads");
-ddt!(uploads, "should only predict uploads");
-ddt!(autosave_only, "should only predict autosave");
+ddt!(downloads, "predict downloads");
+ddt!(uploads, "predict uploads");
+ddt!(autosave, "predict autosave");
+
+#[rustfmt::skip]
+mod solo {
+    use super::*;
+    ddt!(mixed, "both uploads and downloads (with/without autosave)", solo = true);
+    ddt!(bugs, "Any fixed predict bugs get a test case", solo = true);
+    ddt!(downloads, "predict downloads", solo = true);
+    ddt!(uploads, "predict uploads", solo = true);
+    ddt!(autosave, "predict autosave", solo = true);
+}
