@@ -63,7 +63,6 @@ impl Predict for SimplePredict {
             .latest(&Query::new().side(side).player(Some(player)))?
             .map(|s| s.turn);
 
-        // TODO: handle playing_solo
         let last_friendly_start_turn = remote_index
             .latest(&Query::new().side(side).player(None))?
             .map(|s| s.turn);
@@ -95,6 +94,14 @@ impl Predict for SimplePredict {
                 }
                 Ok(turn)
             }
+            // this happens when playing solo
+            (Some(your_turn), None, Some(enemy_turn)) => {
+                let mut turn = your_turn.max(enemy_turn);
+                if turn.side == enemy_side {
+                    turn.side = side;
+                }
+                Ok(turn)
+            }
 
             // this is unlikely in real scenarios
             (None, Some(friendly_turn), Some(enemy_turn)) => {
@@ -105,15 +112,7 @@ impl Predict for SimplePredict {
                 Ok(turn)
             }
             // this is unlikely in real scenarios
-            (Some(your_turn), None, Some(enemy_turn)) => {
-                let mut turn = your_turn.max(enemy_turn);
-                if turn.side == enemy_side {
-                    turn.side = side;
-                }
-                Ok(turn)
-            }
-            // this is highly unlikely in real scenarios
-            (None, None, Some(enemy_turn)) => Ok(enemy_turn.next()),
+            (None, None, Some(enemy_turn)) => Ok(dbg!(enemy_turn).next()),
         }
     }
 
@@ -196,7 +195,7 @@ impl Predict for SimplePredict {
 
         let friendly_turn = remote.index().search(&query)?;
 
-        dbg!(remote.index().search(&Query::new())?);
+        remote.index().search(&Query::new())?;
 
         if friendly_turn.is_empty() {
             Ok(AutosavePrediction::NotReady(
