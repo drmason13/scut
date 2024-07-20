@@ -49,7 +49,7 @@ github-release version:
       --verify-tag v{{version}} \
       --notes-from-tag \
       --draft \
-      --title {{version}} \
+      --title v{{version}} \
       {{msi_directory}}/SCUT_{{version}}_x64_en-US.msi.zip \
       {{msi_directory}}/SCUT_{{version}}_x64_en-US.msi.zip.sig
 
